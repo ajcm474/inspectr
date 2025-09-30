@@ -1,9 +1,8 @@
-# mytool/duplicates.py
 import sys
 import hashlib
 from collections import defaultdict
 
-def find_duplicates(files, block_size=1, min_occur=2):
+def find_duplicates(files, block_size=10, min_occur=3):
     """
     Find duplicate blocks of code across files.
 
@@ -46,6 +45,6 @@ def main(args=None) -> None:
         print("Usage: inspectr duplicates file1.py [file2.py ...]")
         return
 
-    for fname, lnum, count in find_duplicates(args, block_size=1, min_occur=2):
+    for fname, lnum, count in find_duplicates(args, block_size=10, min_occur=3):
         print(f"{fname}:{lnum}  (occurs {count} times)")
 
