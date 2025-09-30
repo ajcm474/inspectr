@@ -12,8 +12,6 @@ CLASS_METHODS = 20
 
 
 def main(files: List[pathlib.Path]) -> None:
-    files = list(pathlib.Path.cwd().rglob("*.py"))
-
     # TODO: rename these
     # Counters and diagnostics
     files_over_1000 = []
