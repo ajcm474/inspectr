@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "inspectr"
-version = "0.0.4"
+version = "0.0.5"
 description = "A collection of python tools to inspect code quality. "
 maintainers = [
     {name = "Alex Mueller", email="amueller474@gmail.com"},

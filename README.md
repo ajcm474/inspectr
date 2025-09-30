@@ -18,6 +18,7 @@ where `<subtool>` is one of the following:
 - `authenticity`: looks for TODO comments, empty try/except blocks, and stub functions
 - `bare_ratio`: checks for the ratio of bare excepts to meaningful exception usage
 - `count_exceptions`: counts how many of each type of exception there are (including bare except)
+- `duplicates`: looks for occurrences of duplicate code (default: 10+ lines, 3+ occurrences)
 - `size_counts`: various linecount-related code complexity checks
 - `with_open`: checks for `open` in the absense of `with` and manual calls to `close()`
 

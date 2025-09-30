@@ -6,13 +6,18 @@ from typing import List
 
 def main(files: List[pathlib.Path]) -> None:
     todo_count = 0
+    fixme_count = 0
+    placeholder_count = 0
     empty_try_except_count = 0
     stub_functions = []
 
     for f in files:
         src = f.read_text(encoding="utf-8")
 
+        # TODO: make these case insensitive
         todo_count += src.count("TODO")
+        fixme_count += src.count("FIXME")
+        placeholder_count += src.count("Placeholder")
 
         try:
             tree = ast.parse(src, filename=str(f))
@@ -36,6 +41,9 @@ def main(files: List[pathlib.Path]) -> None:
                         continue
                     elif isinstance(stmt, ast.Return) and stmt.value is None:
                         continue
+                    elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+                        # ignore docstrings
+                        continue
                     else:
                         is_stub = False
                         break
@@ -44,6 +52,8 @@ def main(files: List[pathlib.Path]) -> None:
 
     print("Analysis results:")
     print(f"  TODO comments: {todo_count}")
+    print(f"  FIXME comments: {fixme_count}")
+    print(f"  Placeholder comments: {placeholder_count}")
     print(f"  Empty try/except blocks: {empty_try_except_count}")
     print(f"  Stub functions/methods: {len(stub_functions)}")
     for stub in stub_functions:
