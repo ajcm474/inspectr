@@ -11,7 +11,16 @@ FUNC_PARAMS = 5
 CLASS_METHODS = 20
 
 
-def main(files: List[pathlib.Path]) -> None:
+def main(files: List[pathlib.Path], **kwargs) -> None:
+    for f in files:
+        if not f.exists():
+            print(f"Error: File does not exist: {f}")
+            return
+        
+        if not f.is_file():
+            print(f"Error: Not a file: {f}")
+            return
+
     # TODO: rename these
     # Counters and diagnostics
     files_over_1000 = []

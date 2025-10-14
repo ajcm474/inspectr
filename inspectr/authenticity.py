@@ -4,7 +4,15 @@ import pathlib
 from typing import List
 
 
-def main(files: List[pathlib.Path]) -> None:
+def main(files: List[pathlib.Path], **kwargs) -> None:
+    for f in files:
+        if not f.exists():
+            print(f"Error: file does not exist: {f}")
+            return
+        if not f.is_file():
+            print(f"Error: not a file: {f}")
+            return
+
     todo_count = 0
     fixme_count = 0
     placeholder_count = 0
@@ -36,18 +44,25 @@ def main(files: List[pathlib.Path]) -> None:
             if isinstance(node, ast.FunctionDef):
                 # Only consider body statements that are `pass` or empty return
                 is_stub = True
-                for stmt in node.body:
+                non_docstring_seen = False
+                for i, stmt in enumerate(node.body):
                     if isinstance(stmt, ast.Pass):
+                        non_docstring_seen = True
                         continue
                     elif isinstance(stmt, ast.Return) and stmt.value is None:
+                        non_docstring_seen = True
                         continue
                     elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
                         # ignore docstrings
-                        continue
+                        if i == 0 or (i == 1 and not non_docstring_seen):
+                            continue
+                        else:
+                            is_stub = False
+                            break
                     else:
                         is_stub = False
                         break
-                if is_stub:
+                if is_stub and len(node.body) > 0:
                     stub_functions.append(f"{f}:{node.name}")
 
     print("Analysis results:")

@@ -4,10 +4,19 @@ import sys
 from typing import List
 
 
-def main(files: List[pathlib.Path]) -> None:
+def main(files: List[pathlib.Path], **kwargs) -> None:
     if not files:
         print("Usage: inspectr with_open <file1> [file2 ...]")
         sys.exit(1)
+
+    for f in files:
+        if not f.exists():
+            print(f"Error: File does not exist: {f}")
+            return
+        
+        if not f.is_file():
+            print(f"Error: Not a file: {f}")
+            return
 
     for filepath in files:
         tree = ast.parse(filepath.read_text(), filename=str(filepath))

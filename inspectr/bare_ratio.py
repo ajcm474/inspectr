@@ -5,7 +5,16 @@ from collections import defaultdict, Counter
 from typing import List
 
 
-def main(files: List[pathlib.Path]) -> None:
+def main(files: List[pathlib.Path], **kwargs) -> None:
+    for f in files:
+        if not f.exists():
+            print(f"Error: File does not exist: {f}")
+            return
+        
+        if not f.is_file():
+            print(f"Error: Not a file: {f}")
+            return
+
     # distinct exception types
     exception_types = Counter()
 

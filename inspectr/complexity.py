@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import argparse
 import ast
 import sys
 from dataclasses import dataclass, field
@@ -691,57 +690,49 @@ class Analyzer(ast.NodeVisitor):
         
         return Complexity.constant()
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Analyze algorithmic complexity of Python code"
-    )
-    parser.add_argument('file', type=Path, help='Python file to analyze')
-    parser.add_argument('-v', '--verbose', action='store_true', 
-                       help='Show detailed analysis')
-    
-    args = parser.parse_args()
-    
-    try:
-        content = args.file.read_text()
-    except Exception as e:
-        print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} Failed to read file: {e}")
-        sys.exit(1)
-    
-    analyzer = Analyzer()
-    
-    try:
-        results = analyzer.analyze_file(content, str(args.file))
-    except ValueError as e:
-        print(f"{Fore.RED}{Style.BRIGHT}Analysis failed:{Style.RESET_ALL} {e}")
-        sys.exit(1)
-    
-    # print results
-    print(f"\n{Fore.CYAN}{'═' * 80}{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}{Style.BRIGHT}  Python Complexity Analysis: {args.file}{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}{'═' * 80}{Style.RESET_ALL}\n")
-    
-    has_approximate = any(r.complexity.is_approximate for r in results)
-    
-    for analysis in results:
-        approx_marker = " *" if analysis.complexity.is_approximate else ""
+def main(files: List[Path], **kwargs) -> None:
+    for file_path in files:
+        if not file_path.exists():
+            print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} File does not exist: {file_path}")
+            continue
         
-        print(f"{Fore.GREEN}{Style.BRIGHT}Function/Method:{Style.RESET_ALL} {Fore.YELLOW}{analysis.name}{Style.RESET_ALL}")
-        print(f"  {Fore.BLUE}{Style.BRIGHT}Complexity:{Style.RESET_ALL} {Fore.MAGENTA}{analysis.complexity.expression}{Style.RESET_ALL}{Fore.RED}{Style.BRIGHT}{approx_marker}{Style.RESET_ALL}")
+        if not file_path.is_file():
+            print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} Not a file: {file_path}")
+            continue
         
-        if args.verbose and analysis.complexity.details:
-            print(f"  {Fore.BLUE}{Style.BRIGHT}Details:{Style.RESET_ALL}")
-            for detail in analysis.complexity.details:
-                print(f"    - {detail}")
+        try:
+            content = file_path.read_text()
+        except Exception as e:
+            print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} Failed to read file: {e}")
+            continue
         
-        if analysis.anti_patterns:
-            print(f"  {Fore.YELLOW}{Style.BRIGHT}⚠ Performance Issues:{Style.RESET_ALL}")
-            for ap in analysis.anti_patterns:
-                print(f"    {Fore.RED}•{Style.RESET_ALL} [line {ap.line}]: {Fore.YELLOW}{ap.description}{Style.RESET_ALL}")
+        analyzer = Analyzer()
         
-        print()
-    
-    if has_approximate:
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Note:{Style.RESET_ALL} {Fore.RED}{Style.BRIGHT}*{Style.RESET_ALL} Complexity marked with * is approximate due to static analysis limitations")
+        try:
+            results = analyzer.analyze_file(content, str(file_path))
+        except ValueError as e:
+            print(f"{Fore.RED}{Style.BRIGHT}Analysis failed:{Style.RESET_ALL} {e}")
+            continue
+        
+        print(f"\n{Fore.CYAN}{'═' * 80}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{Style.BRIGHT}  Python Complexity Analysis: {file_path}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{'═' * 80}{Style.RESET_ALL}\n")
+        
+        has_approximate = any(r.complexity.is_approximate for r in results)
+        
+        for analysis in results:
+            approx_marker = " *" if analysis.complexity.is_approximate else ""
+            
+            print(f"{Fore.GREEN}{Style.BRIGHT}Function/Method:{Style.RESET_ALL} {Fore.YELLOW}{analysis.name}{Style.RESET_ALL}")
+            print(f"  {Fore.BLUE}{Style.BRIGHT}Complexity:{Style.RESET_ALL} {Fore.MAGENTA}{analysis.complexity.expression}{Style.RESET_ALL}{Fore.RED}{Style.BRIGHT}{approx_marker}{Style.RESET_ALL}")
+            
+            if analysis.anti_patterns:
+                print(f"  {Fore.YELLOW}{Style.BRIGHT}⚠ Performance Issues:{Style.RESET_ALL}")
+                for ap in analysis.anti_patterns:
+                    print(f"    {Fore.RED}•{Style.RESET_ALL} [line {ap.line}]: {Fore.YELLOW}{ap.description}{Style.RESET_ALL}")
+            
+            print()
+        
+        if has_approximate:
+            print(f"{Fore.YELLOW}{Style.BRIGHT}Note:{Style.RESET_ALL} {Fore.RED}{Style.BRIGHT}*{Style.RESET_ALL} Complexity marked with * is approximate due to static analysis limitations")
 
-if __name__ == "__main__":
-    main()
