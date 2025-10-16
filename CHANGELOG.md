@@ -1,3 +1,8 @@
+## Version 0.1.1
+- Fix `complexity` tool to properly preserve all terms
+  - Bugs remain in combining constant terms
+- Add more robust tests for `complexity` tool 
+
 ## Version 0.1.0
 - Add `complexity` tool to command line interface with support for analyzing multiple files
 - Add `compare_funcs` tool to command line interface for comparing functions across directories

@@ -38,35 +38,13 @@ class Complexity:
         is_approx = self.is_approximate or other.is_approximate
         details = self.details + other.details
         
-        # don't add O(1) unless both are O(1)
-        if self.expression == "O(1)" and other.expression == "O(1)":
-            expr = "O(2)"
-        elif self.expression == "O(1)":
-            expr = other.expression
-        elif other.expression == "O(1)":
-            expr = self.expression
-        elif self.expression == other.expression:
-            # Same complexity - combine coefficients
-            if self.expression == "O(n)":
-                expr = "O(2n)"
-            elif "O(" in self.expression and "n)" in self.expression:
-                # Extract coefficient
-                import re
-                match = re.match(r'O\((\d*)n\)', self.expression)
-                if match:
-                    coef = int(match.group(1)) if match.group(1) else 1
-                    expr = f"O({coef*2}n)"
-                else:
-                    expr = f"{self.expression}+{other.expression}"
-            else:
-                expr = f"{self.expression}+{other.expression}"
-        elif "O(" in self.expression and "O(" in other.expression:
-            # try to combine similar terms
-            expr = self._combine_similar_terms(self.expression, other.expression)
-            if not expr:
-                expr = f"{self.expression}+{other.expression}"
-        else:
-            expr = f"{self.expression}+{other.expression}"
+        # Extract inner expressions (remove O(...) wrapper)
+        expr1_inner = self._extract_inner(self.expression)
+        expr2_inner = other._extract_inner(other.expression)
+        
+        # Combine the inner expressions
+        combined_inner = self._add_expressions(expr1_inner, expr2_inner)
+        expr = f"O({combined_inner})"
         
         return Complexity(expr, is_approx, details)
     
@@ -75,12 +53,13 @@ class Complexity:
         is_approx = self.is_approximate or other.is_approximate
         details = self.details + other.details
         
-        if self.expression == "O(1)":
-            expr = other.expression
-        elif other.expression == "O(1)":
-            expr = self.expression
-        else:
-            expr = f"{self.expression}*{other.expression}"
+        # Extract inner expressions (remove O(...) wrapper)
+        expr1_inner = self._extract_inner(self.expression)
+        expr2_inner = other._extract_inner(other.expression)
+        
+        # Multiply the inner expressions
+        combined_inner = self._multiply_expressions(expr1_inner, expr2_inner)
+        expr = f"O({combined_inner})"
         
         return Complexity(expr, is_approx, details)
     
@@ -96,6 +75,283 @@ class Complexity:
         else:
             return other
 
+    def _extract_inner(self, expr: str) -> str:
+        """Extract the inner expression from O(...) notation"""
+        if expr.startswith("O(") and expr.endswith(")"):
+            return expr[2:-1]
+        return expr
+    
+    def _add_expressions(self, expr1: str, expr2: str) -> str:
+        """Add two complexity expressions"""
+        import re
+        
+        # Parse both expressions into term dictionaries
+        terms = defaultdict(int)
+        
+        for expr in [expr1, expr2]:
+            parsed = self._parse_expression(expr)
+            for term_type, coef in parsed.items():
+                terms[term_type] += coef
+        
+        return self._format_expression(terms)
+    
+    def _multiply_expressions(self, expr1: str, expr2: str) -> str:
+        """Multiply two complexity expressions"""
+        import re
+        
+        # Handle constant multiplication
+        if expr1 == "1":
+            return expr2
+        if expr2 == "1":
+            return expr1
+        
+        # Parse expressions
+        terms1 = self._parse_expression(expr1)
+        terms2 = self._parse_expression(expr2)
+        
+        # If both are single terms, multiply them
+        if len(terms1) == 1 and len(terms2) == 1:
+            term1_type, coef1 = list(terms1.items())[0]
+            term2_type, coef2 = list(terms2.items())[0]
+            
+            # Multiply coefficients
+            new_coef = coef1 * coef2
+            
+            # Combine term types
+            new_term = self._multiply_term_types(term1_type, term2_type)
+            
+            result_terms = {new_term: new_coef}
+            return self._format_expression(result_terms)
+        else:
+            # For complex expressions, use distributive property
+            result_terms = defaultdict(int)
+            for term1_type, coef1 in terms1.items():
+                for term2_type, coef2 in terms2.items():
+                    new_term = self._multiply_term_types(term1_type, term2_type)
+                    result_terms[new_term] += coef1 * coef2
+            return self._format_expression(result_terms)
+    
+    def _parse_expression(self, expr: str) -> Dict[str, int]:
+        """Parse a complexity expression into term types and coefficients"""
+        import re
+        
+        terms = defaultdict(int)
+        
+        if not expr or expr == "0":
+            # O(0) means no operations
+            return terms
+        elif expr == "1":
+            terms["1"] = 1
+            return terms
+        
+        # Split by + (but not inside parentheses)
+        parts = []
+        current = ""
+        depth = 0
+        for char in expr:
+            if char == '(':
+                depth += 1
+                current += char
+            elif char == ')':
+                depth -= 1
+                current += char
+            elif char == '+' and depth == 0:
+                if current.strip():
+                    parts.append(current.strip())
+                current = ""
+            else:
+                current += char
+        if current.strip():
+            parts.append(current.strip())
+        
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            
+            # Check if this is a multiplication (e.g., n*n)
+            if '*' in part and 'log' not in part:
+                # Parse as multiplication and convert to power
+                mult_result = self._parse_multiplication(part)
+                for term_type, coef in mult_result.items():
+                    terms[term_type] += coef
+                continue
+            
+            # Match different patterns
+            if part == "1":
+                terms["1"] += 1
+            elif match := re.match(r'^(\d+)$', part):
+                terms["1"] += int(match.group(1))
+            elif part == "n":
+                terms["n"] += 1
+            elif match := re.match(r'^(\d+)n$', part):
+                terms["n"] += int(match.group(1))
+            elif "n*log(n)" in part or "n log(n)" in part:
+                if match := re.match(r'^(\d+)\s*n\*log\(n\)$', part):
+                    terms["n*log(n)"] += int(match.group(1))
+                else:
+                    terms["n*log(n)"] += 1
+            elif "log(n)" in part:
+                if match := re.match(r'^(\d+)\s*log\(n\)$', part):
+                    terms["log(n)"] += int(match.group(1))
+                else:
+                    terms["log(n)"] += 1
+            elif "n²" in part or "n^2" in part:
+                terms["n²"] += 1
+            elif "n³" in part or "n^3" in part:
+                terms["n³"] += 1
+            elif "n⁴" in part or "n^4" in part:
+                terms["n⁴"] += 1
+            else:
+                # Unknown term, keep as-is with coefficient 1
+                terms[part] += 1
+        
+        if not terms:
+            terms["1"] = 1
+        
+        return terms
+    
+    def _parse_multiplication(self, expr: str) -> Dict[str, int]:
+        """Parse a multiplication expression like n*n into term dict"""
+        parts = expr.split('*')
+        result_term = "1"
+        result_coef = 1
+        
+        for part in parts:
+            part = part.strip()
+            # Parse each part as a simple term
+            if part == "n":
+                result_term = self._multiply_term_types(result_term, "n")
+            elif part == "1" or not part:
+                continue
+            else:
+                # Try to parse as term
+                import re
+                if match := re.match(r'^(\d+)n$', part):
+                    result_coef *= int(match.group(1))
+                    result_term = self._multiply_term_types(result_term, "n")
+                elif match := re.match(r'^(\d+)$', part):
+                    result_coef *= int(match.group(1))
+                elif "n²" in part or "n^2" in part:
+                    result_term = self._multiply_term_types(result_term, "n²")
+                elif "n³" in part or "n^3" in part:
+                    result_term = self._multiply_term_types(result_term, "n³")
+                elif part == "log(n)":
+                    result_term = self._multiply_term_types(result_term, "log(n)")
+                else:
+                    result_term = self._multiply_term_types(result_term, part)
+        
+        return {result_term: result_coef}
+    
+    def _multiply_term_types(self, type1: str, type2: str) -> str:
+        """Multiply two term types (e.g., n * n = n²)"""
+        if type1 == "1":
+            return type2
+        if type2 == "1":
+            return type1
+        
+        # Count the power of n in each term
+        power1 = self._get_n_power(type1)
+        power2 = self._get_n_power(type2)
+        new_power = power1 + power2
+        
+        # Check for log terms
+        has_log1 = "log" in type1
+        has_log2 = "log" in type2
+        
+        if new_power == 0:
+            if has_log1 and has_log2:
+                return "log²(n)"
+            elif has_log1 or has_log2:
+                return "log(n)"
+            else:
+                return "1"
+        elif new_power == 1:
+            if has_log1 or has_log2:
+                return "n*log(n)"
+            else:
+                return "n"
+        elif new_power == 2:
+            if has_log1 or has_log2:
+                return "n²*log(n)"
+            else:
+                return "n²"
+        elif new_power == 3:
+            if has_log1 or has_log2:
+                return "n³*log(n)"
+            else:
+                return "n³"
+        elif new_power == 4:
+            if has_log1 or has_log2:
+                return "n⁴*log(n)"
+            else:
+                return "n⁴"
+        else:
+            log_part = "*log(n)" if (has_log1 or has_log2) else ""
+            return f"n^{new_power}{log_part}"
+    
+    def _get_n_power(self, term: str) -> int:
+        """Get the power of n in a term"""
+        import re
+        
+        if term == "1" or "log" in term and "n" not in term:
+            return 0
+        elif term == "n" or (term == "n*log(n)"):
+            return 1
+        elif "n²" in term or "n^2" in term:
+            return 2
+        elif "n³" in term or "n^3" in term:
+            return 3
+        elif "n⁴" in term or "n^4" in term:
+            return 4
+        elif match := re.match(r'n\^(\d+)', term):
+            return int(match.group(1))
+        elif "n" in term:
+            return 1
+        else:
+            return 0
+    
+    def _format_expression(self, terms: Dict[str, int]) -> str:
+        """Format a term dictionary back to a string expression"""
+        if not terms:
+            return "1"
+        
+        # Order terms by complexity (highest first)
+        order = ["n⁴", "n³", "n²", "n*log(n)", "n", "log(n)", "1"]
+        result_parts = []
+        
+        for term_type in order:
+            if term_type in terms and terms[term_type] > 0:
+                coef = terms[term_type]
+                if term_type == "1":
+                    result_parts.append(str(coef))
+                elif term_type == "n":
+                    if coef == 1:
+                        result_parts.append("n")
+                    else:
+                        result_parts.append(f"{coef}n")
+                elif term_type == "log(n)":
+                    if coef == 1:
+                        result_parts.append("log(n)")
+                    else:
+                        result_parts.append(f"{coef}log(n)")
+                else:
+                    # Higher order terms typically don't show coefficient
+                    if coef == 1:
+                        result_parts.append(term_type)
+                    else:
+                        result_parts.append(f"{coef}{term_type}")
+        
+        # Add any unknown terms
+        for term_type, coef in terms.items():
+            if term_type not in order and coef > 0:
+                if coef == 1:
+                    result_parts.append(term_type)
+                else:
+                    result_parts.append(f"{coef}*{term_type}")
+        
+        return " + ".join(result_parts) if result_parts else "1"
+    
     def _combine_similar_terms(self, expr1: str, expr2: str) -> Optional[str]:
         """Combine similar complexity terms with coefficients"""
         import re
@@ -158,17 +414,18 @@ class Complexity:
         """Simplify the complexity expression WITHOUT reducing to dominant term"""
         expr = self.expression
         
-        # first handle nested multiplications (convert to exponents)
-        if '*' in expr:
-            expr = self._simplify_multiplications(expr)
+        # Extract inner expression
+        inner = self._extract_inner(expr)
         
-        # then combine similar terms in additions
-        if '+' in expr:
-            expr = self._combine_additions(expr)
+        # Parse and reformat to combine like terms
+        terms = self._parse_expression(inner)
+        formatted = self._format_expression(terms)
         
-        # clean up constants
-        if expr == "O(0)" or not expr:
-            expr = "O(1)"
+        # Handle edge cases
+        if formatted == "0" or not formatted:
+            formatted = "1"
+        
+        expr = f"O({formatted})"
         
         return Complexity(expr, self.is_approximate, self.details)
     
@@ -246,95 +503,14 @@ class Complexity:
     
     def _combine_additions(self, expr: str) -> str:
         """Combine similar terms in additions"""
-        import re
+        # Extract inner part of O(...)
+        inner = self._extract_inner(expr)
         
-        parts = expr.split('+')
-        terms = defaultdict(int)
+        # Parse and reformat
+        terms = self._parse_expression(inner)
+        formatted = self._format_expression(terms)
         
-        for part in parts:
-            part = part.strip()
-            if part == "O(1)":
-                terms["1"] += 1
-            elif match := re.match(r'O\((\d+)\)', part):
-                terms["1"] += int(match.group(1))
-            elif part == "O(n)":
-                terms["n"] += 1
-            elif match := re.match(r'O\((\d+)n\)', part):
-                terms["n"] += int(match.group(1))
-            elif "n*log(n)" in part:
-                terms["n*log(n)"] += 1
-            elif "log(n)" in part and "n*" not in part:
-                terms["log(n)"] += 1
-            elif "n²" in part or "n^2" in part:
-                terms["n²"] += 1
-            elif "n³" in part or "n^3" in part:
-                terms["n³"] += 1
-            elif "n⁴" in part or "n^4" in part:
-                terms["n⁴"] += 1
-            else:
-                # unknown term, keep as-is
-                if part and part != "O(1)":
-                    terms[part] = 1
-        
-        # build result with proper ordering
-        result_parts = []
-        order = ["n⁴", "n³", "n²", "n*log(n)", "n", "log(n)", "1"]
-        
-        for complexity in order:
-            if complexity in terms and terms[complexity] > 0:
-                count = terms[complexity]
-                if complexity == "1":
-                    if count == 1:
-                        result_parts.append("O(1)")
-                        result_parts.append(f"O({count})")
-                elif complexity == "n":
-                    if count == 1:
-                        result_parts.append("O(n)")
-                    else:
-                        result_parts.append(f"O({count}n)")
-                else:
-                    if count == 1:
-                        result_parts.append(f"O({complexity})")
-                    else:
-                        # for higher order terms, we don't usually show coefficient
-                        # but we could if needed
-                        result_parts.append(f"O({complexity})")
-        
-        # add any unknown terms
-        for term, count in terms.items():
-            if term not in order and count > 0:
-                result_parts.append(term)
-        
-        # remove O(1) terms if there are higher order terms
-        if len(result_parts) > 1:
-            result_parts = [p for p in result_parts if not (p == "O(1)" or re.match(r'O\(\d+\)', p))]
-            # actually, keep constant terms as per requirement
-            # revert this filtering
-            result_parts = []
-            for complexity in order:
-                if complexity in terms and terms[complexity] > 0:
-                    count = terms[complexity]
-                    if complexity == "1":
-                        if count == 1:
-                            result_parts.append("1")
-                        else:
-                            result_parts.append(str(count))
-                    elif complexity == "n":
-                        if count == 1:
-                            result_parts.append("n")
-                        else:
-                            result_parts.append(f"{count}n")
-                    else:
-                        if count == 1:
-                            result_parts.append(complexity)
-                        else:
-                            # for polynomial terms, coefficient usually not shown
-                            result_parts.append(complexity)
-        
-        if result_parts:
-            return "O(" + " + ".join(result_parts) + ")"
-        else:
-            return "O(1)"
+        return f"O({formatted})"
 
 @dataclass
 class AntiPattern:
@@ -416,8 +592,6 @@ class Analyzer(ast.NodeVisitor):
     
     def analyze_body(self, body: List[ast.stmt]) -> Complexity:
         """Analyze a list of statements"""
-        total = Complexity.constant()
-
         # Track variable assignments for type inference
         for stmt in body:
             if isinstance(stmt, ast.Assign):
@@ -433,16 +607,28 @@ class Analyzer(ast.NodeVisitor):
                                 if isinstance(target, ast.Name):
                                     self.variable_types[target.id] = 'list'
         
+        # Start with O(0) by using special marker
+        total = None
         
         for stmt in body:
             stmt_complexity = self.analyze_statement(stmt)
-            total = total.combine_sequential(stmt_complexity)
+            if total is None:
+                total = stmt_complexity
+            else:
+                total = total.combine_sequential(stmt_complexity)
+        
+        # If empty body, return O(1)
+        if total is None:
+            total = Complexity.constant()
         
         return total.simplify()
     
     def analyze_statement(self, stmt: ast.stmt) -> Complexity:
         """Analyze a single statement"""
-        if isinstance(stmt, ast.For):
+        if isinstance(stmt, ast.Pass):
+            # Pass statements have no computational cost
+            return Complexity("O(0)", False, [])
+        elif isinstance(stmt, ast.For):
             return self.analyze_for_loop(stmt)
         elif isinstance(stmt, ast.While):
             return self.analyze_while_loop(stmt)
@@ -456,11 +642,27 @@ class Analyzer(ast.NodeVisitor):
             return Complexity.constant()
         elif isinstance(stmt, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
             if isinstance(stmt, ast.Assign):
-                return self.analyze_expr(stmt.value)
+                # Analyze the RHS expression
+                value_complexity = self.analyze_expr(stmt.value)
+                # If it's just a constant, the whole assignment is O(1)
+                # Otherwise, we have the complexity of computing the value
+                if value_complexity.expression == "O(1)":
+                    return Complexity.constant()
+                else:
+                    # Assignment + value computation
+                    return Complexity.constant().combine_sequential(value_complexity)
             elif isinstance(stmt, ast.AugAssign):
-                return self.analyze_expr(stmt.value)
+                value_complexity = self.analyze_expr(stmt.value)
+                if value_complexity.expression == "O(1)":
+                    return Complexity.constant()
+                else:
+                    return Complexity.constant().combine_sequential(value_complexity)
             elif isinstance(stmt, ast.AnnAssign) and stmt.value:
-                return self.analyze_expr(stmt.value)
+                value_complexity = self.analyze_expr(stmt.value)
+                if value_complexity.expression == "O(1)":
+                    return Complexity.constant()
+                else:
+                    return Complexity.constant().combine_sequential(value_complexity)
             return Complexity.constant()
         else:
             return Complexity.constant()
@@ -480,17 +682,27 @@ class Analyzer(ast.NodeVisitor):
         # while loops have unknown iterations in static analysis
         if body_complexity.expression == "O(1)":
             result = Complexity.linear(1)
+            result.is_approximate = True
         else:
             result = body_complexity.combine_nested(Complexity.linear(1))
             result.is_approximate = True
         
-        return result.with_detail("while loop (unknown iterations)").simplify()
+        result = result.with_detail("while loop (unknown iterations)").simplify()
+        result.is_approximate = True
+        return result
     
     def analyze_if(self, node: ast.If) -> Complexity:
-        """Analyze if statement - take max of branches"""
+        """Analyze if statement - test condition plus max of branches"""
+        # Analyze the test condition
+        test_complexity = self.analyze_expr(node.test)
+        
+        # Analyze both branches
         if_body = self.analyze_body(node.body)
         else_body = self.analyze_body(node.orelse)
-        return if_body.max(else_body)
+        
+        # Take max of branches and add the test
+        branch_complexity = if_body.max(else_body)
+        return test_complexity.combine_sequential(branch_complexity)
     
     def estimate_iteration_count(self, iter_node: ast.expr) -> Complexity:
         """Estimate iteration count for loop iterator"""
@@ -535,9 +747,20 @@ class Analyzer(ast.NodeVisitor):
         """Analyze list/set/dict comprehension or generator expression"""
         complexity = Complexity.constant()
         
+        # Analyze the iteration complexity
         for generator in node.generators:
             iter_complexity = self.estimate_iteration_count(generator.iter)
             complexity = complexity.combine_nested(iter_complexity)
+        
+        # Analyze the element expression (which might be another comprehension)
+        if isinstance(node, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
+            elt_complexity = self.analyze_expr(node.elt)
+            complexity = complexity.combine_nested(elt_complexity)
+        elif isinstance(node, ast.DictComp):
+            key_complexity = self.analyze_expr(node.key)
+            value_complexity = self.analyze_expr(node.value)
+            elt_complexity = key_complexity.combine_sequential(value_complexity)
+            complexity = complexity.combine_nested(elt_complexity)
         
         # check for anti-pattern (using list comp where generator would work)
         if isinstance(node, ast.ListComp):
