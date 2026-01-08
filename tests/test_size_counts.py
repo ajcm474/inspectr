@@ -44,7 +44,8 @@ def test_function_with_many_params(capsys):
 
 def test_class_with_methods(capsys):
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-        f.write("class Foo:\n    def method1(self):\n        pass\n    def method2(self):\n        pass\n")
+        f.write("class Foo:\n    def method1(self):\n        pass\n"
+                "    def method2(self):\n        pass\n")
         path = pathlib.Path(f.name)
     
     try:
@@ -93,7 +94,8 @@ def test_large_file(capsys):
 
 def test_class_with_private_methods(capsys):
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-        f.write("class Foo:\n    def public(self):\n        pass\n    def _private(self):\n        pass\n")
+        f.write("class Foo:\n    def public(self):\n        pass\n"
+                "    def _private(self):\n        pass\n")
         path = pathlib.Path(f.name)
     
     try:

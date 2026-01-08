@@ -74,11 +74,15 @@ def test_main_nonexistent_file_list(capsys):
 
 
 def test_main_dir_not_directory(capsys):
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".txt", delete=False
+    ) as f:
         f.write("test.py\n")
         list_path = pathlib.Path(f.name)
     
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".py", delete=False
+    ) as f:
         not_dir = pathlib.Path(f.name)
     
     try:

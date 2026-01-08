@@ -206,7 +206,8 @@ def test_analyzer_builtin_sorted():
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
-    assert "n*log(n)" in results[0].complexity.expression or "log" in results[0].complexity.expression
+    expr = results[0].complexity.expression
+    assert "n*log(n)" in expr or "log" in expr
 
 
 def test_analyzer_builtin_sum():
@@ -230,7 +231,8 @@ def test_analyzer_membership_list():
     results = analyzer.analyze_file(code)
     assert len(results) == 1
     # Should detect anti-pattern for list membership
-    assert any(ap.pattern_type == "list_membership" for ap in results[0].anti_patterns)
+    patterns = results[0].anti_patterns
+    assert any(ap.pattern_type == "list_membership" for ap in patterns)
 
 
 def test_analyzer_membership_set():

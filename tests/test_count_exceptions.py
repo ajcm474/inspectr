@@ -31,7 +31,8 @@ def test_typed_except(capsys):
 
 def test_multiple_exception_handlers(capsys):
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-        f.write("try:\n    pass\nexcept ValueError:\n    pass\nexcept KeyError:\n    pass\n")
+        f.write("try:\n    pass\nexcept ValueError:\n    pass\n"
+                "except KeyError:\n    pass\n")
         path = pathlib.Path(f.name)
     
     try:
