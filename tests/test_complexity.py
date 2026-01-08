@@ -89,11 +89,12 @@ def test_analyzer_simple_function():
 
 
 def test_analyzer_multiple_statements():
-    code = """def foo():
-    x = 1
-    y = 2
-    z = 3
-"""
+    code = (
+        "def foo():\n"
+        "    x = 1\n"
+        "    y = 2\n"
+        "    z = 3\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -101,10 +102,11 @@ def test_analyzer_multiple_statements():
 
 
 def test_analyzer_for_loop():
-    code = """def foo():
-    for i in range(10):
-        pass
-"""
+    code = (
+        "def foo():\n"
+        "    for i in range(10):\n"
+        "        pass\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -113,11 +115,12 @@ def test_analyzer_for_loop():
 
 
 def test_analyzer_nested_loops():
-    code = """def foo():
-    for i in range(10):
-        for j in range(20):
-            pass
-"""
+    code = (
+        "def foo():\n"
+        "    for i in range(10):\n"
+        "        for j in range(20):\n"
+        "            pass\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -125,12 +128,13 @@ def test_analyzer_nested_loops():
 
 
 def test_analyzer_triple_nested_loops():
-    code = """def foo():
-    for i in range(10):
-        for j in range(20):
-            for k in range(30):
-                pass
-"""
+    code = (
+        "def foo():\n"
+        "    for i in range(10):\n"
+        "        for j in range(20):\n"
+        "            for k in range(30):\n"
+        "                pass\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -138,12 +142,13 @@ def test_analyzer_triple_nested_loops():
 
 
 def test_analyzer_sequential_loops():
-    code = """def foo():
-    for i in range(10):
-        pass
-    for j in range(20):
-        pass
-"""
+    code = (
+        "def foo():\n"
+        "    for i in range(10):\n"
+        "        pass\n"
+        "    for j in range(20):\n"
+        "        pass\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -152,15 +157,16 @@ def test_analyzer_sequential_loops():
 
 
 def test_analyzer_mixed_loops():
-    code = """def foo():
-    x = 1
-    for i in range(10):
-        pass
-    for j in range(20):
-        for k in range(30):
-            pass
-    y = 2
-"""
+    code = (
+        "def foo():\n"
+        "    x = 1\n"
+        "    for i in range(10):\n"
+        "        pass\n"
+        "    for j in range(20):\n"
+        "        for k in range(30):\n"
+        "            pass\n"
+        "    y = 2\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -170,9 +176,10 @@ def test_analyzer_mixed_loops():
 
 
 def test_analyzer_list_comprehension():
-    code = """def foo():
-    result = [i for i in range(10)]
-"""
+    code = (
+        "def foo():\n"
+        "    result = [i for i in range(10)]\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -181,9 +188,10 @@ def test_analyzer_list_comprehension():
 
 
 def test_analyzer_nested_list_comprehension():
-    code = """def foo():
-    result = [[i*j for i in range(10)] for j in range(20)]
-"""
+    code = (
+        "def foo():\n"
+        "    result = [[i*j for i in range(10)] for j in range(20)]\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -191,9 +199,10 @@ def test_analyzer_nested_list_comprehension():
 
 
 def test_analyzer_builtin_sorted():
-    code = """def foo():
-    result = sorted([1, 2, 3])
-"""
+    code = (
+        "def foo():\n"
+        "    result = sorted([1, 2, 3])\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -201,9 +210,10 @@ def test_analyzer_builtin_sorted():
 
 
 def test_analyzer_builtin_sum():
-    code = """def foo():
-    result = sum([1, 2, 3])
-"""
+    code = (
+        "def foo():\n"
+        "    result = sum([1, 2, 3])\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -211,10 +221,11 @@ def test_analyzer_builtin_sum():
 
 
 def test_analyzer_membership_list():
-    code = """def foo(items):
-    if 5 in [1, 2, 3, 4, 5]:
-        pass
-"""
+    code = (
+        "def foo(items):\n"
+        "    if 5 in [1, 2, 3, 4, 5]:\n"
+        "        pass\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -223,10 +234,11 @@ def test_analyzer_membership_list():
 
 
 def test_analyzer_membership_set():
-    code = """def foo(items):
-    if 5 in {1, 2, 3, 4, 5}:
-        pass
-"""
+    code = (
+        "def foo(items):\n"
+        "    if 5 in {1, 2, 3, 4, 5}:\n"
+        "        pass\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -235,13 +247,14 @@ def test_analyzer_membership_set():
 
 
 def test_analyzer_if_statement():
-    code = """def foo(x):
-    if x > 5:
-        for i in range(10):
-            pass
-    else:
-        pass
-"""
+    code = (
+        "def foo(x):\n"
+        "    if x > 5:\n"
+        "        for i in range(10):\n"
+        "            pass\n"
+        "    else:\n"
+        "        pass\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -250,11 +263,12 @@ def test_analyzer_if_statement():
 
 
 def test_analyzer_while_loop():
-    code = """def foo():
-    i = 0
-    while i < 10:
-        i += 1
-"""
+    code = (
+        "def foo():\n"
+        "    i = 0\n"
+        "    while i < 10:\n"
+        "        i += 1\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1
@@ -263,13 +277,14 @@ def test_analyzer_while_loop():
 
 
 def test_analyzer_multiple_functions():
-    code = """def foo():
-    pass
-
-def bar():
-    for i in range(10):
-        pass
-"""
+    code = (
+        "def foo():\n"
+        "    pass\n"
+        "\n"
+        "def bar():\n"
+        "    for i in range(10):\n"
+        "        pass\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 2
@@ -278,14 +293,15 @@ def bar():
 
 
 def test_analyzer_class_methods():
-    code = """class MyClass:
-    def method1(self):
-        pass
-    
-    def method2(self):
-        for i in range(10):
-            pass
-"""
+    code = (
+        "class MyClass:\n"
+        "    def method1(self):\n"
+        "        pass\n"
+        "    \n"
+        "    def method2(self):\n"
+        "        for i in range(10):\n"
+        "            pass\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 2
@@ -294,7 +310,7 @@ def test_analyzer_class_methods():
 
 
 def test_main_with_file(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("def foo():\n    pass\n")
         path = pathlib.Path(f.name)
     
@@ -335,11 +351,12 @@ def test_complexity_simplify_nested():
 
 def test_complexity_preserve_terms():
     """Test that lower-order terms are preserved"""
-    code = """def foo():
-    x = 1
-    for i in range(10):
-        y = 2
-"""
+    code = (
+        "def foo():\n"
+        "    x = 1\n"
+        "    for i in range(10):\n"
+        "        y = 2\n"
+    )
     analyzer = Analyzer()
     results = analyzer.analyze_file(code)
     assert len(results) == 1

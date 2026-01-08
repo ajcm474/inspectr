@@ -5,15 +5,21 @@ from collections import Counter, defaultdict
 from typing import List
 
 
-def main(files: List[pathlib.Path], **kwargs) -> None:
+def validate_files(files: List[pathlib.Path]) -> bool:
+    """Validate that all files exist and are regular files."""
     for f in files:
         if not f.exists():
             print(f"Error: File does not exist: {f}")
-            return
-        
+            return False
         if not f.is_file():
             print(f"Error: Not a file: {f}")
-            return
+            return False
+    return True
+
+
+def main(files: List[pathlib.Path], **kwargs) -> None:
+    if not validate_files(files):
+        return
 
     exception_types = Counter()
     bare_or_exception_per_file = defaultdict(int)
@@ -49,4 +55,3 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
     print("\nBare excepts or 'except Exception' per file:")
     for f, count in sorted(bare_or_exception_per_file.items()):
         print(f"  {f}: {count}")
-

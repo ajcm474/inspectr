@@ -1,5 +1,4 @@
 import ast
-import os
 from pathlib import Path
 from collections import defaultdict
 from typing import List
@@ -27,8 +26,8 @@ def compare_functions(dir1: str, dir2: str, rel_files: list[str]):
     functions_in_dir2 = defaultdict(list)
 
     for rel in rel_files:
-        file1 = os.path.join(dir1, rel)
-        file2 = os.path.join(dir2, rel)
+        file1 = str(Path(dir1) / rel)
+        file2 = str(Path(dir2) / rel)
 
         funcs1 = extract_functions(file1)
         funcs2 = extract_functions(file2)
@@ -60,7 +59,7 @@ def compare_functions(dir1: str, dir2: str, rel_files: list[str]):
         if files2 and files1 and files1 != files2:
             intersection = files1 & files2
             if not intersection:
-                moded.append((fn, files1, files2))
+                moved.append((fn, files1, files2))
 
     if moved:
         print("\nFunctions/methods that appear to have moved:")
@@ -75,13 +74,16 @@ def compare_functions(dir1: str, dir2: str, rel_files: list[str]):
         print("No functions moved to a different file")
 
 
-def main(files: List[Path], **kwargs) -> None:
+def validate_inputs(files: List[Path]) -> bool:
+    """Validate command line inputs for compare_funcs."""
     if len(files) < 3:
-        print("Usage: inspectr compare_funcs <files_list.txt> <dir1> <dir2>")
-        print("  files_list.txt: text file containing relative paths to compare, one per line")
-        print("  dir1: first directory")
-        print("  dir2: second directory")
-        return
+        print(
+            "Usage: inspectr compare_funcs <files_list.txt> <dir1> <dir2>\n"
+            "  files_list.txt: text file containing relative paths to compare, one per line\n"
+            "  dir1: first directory\n"
+            "  dir2: second directory"
+        )
+        return False
 
     files_list_path = files[0]
     dir1 = files[1]
@@ -89,30 +91,40 @@ def main(files: List[Path], **kwargs) -> None:
 
     if not files_list_path.exists():
         print(f"Error: File list does not exist: {files_list_path}")
-        return
+        return False
 
     if not files_list_path.is_file():
         print(f"Error: Not a file: {files_list_path}")
-        return
+        return False
 
     if not dir1.exists():
         print(f"Error: Directory does not exist: {dir1}")
-        return
+        return False
 
     if not dir1.is_dir():
         print(f"Error: Not a directory: {dir1}")
-        return
+        return False
 
     if not dir2.exists():
         print(f"Error: Directory does not exist: {dir2}")
-        return
+        return False
 
     if not dir2.is_dir():
         print(f"Error: Not a directory: {dir2}")
+        return False
+
+    return True
+
+
+def main(files: List[Path], **kwargs) -> None:
+    if not validate_inputs(files):
         return
+
+    files_list_path = files[0]
+    dir1 = files[1]
+    dir2 = files[2]
 
     with open(files_list_path, "r", encoding="utf-8") as f:
         rel_files = [line.rstrip("\n") for line in f if line.strip()]
 
     compare_functions(str(dir1), str(dir2), rel_files)
-

@@ -1,49 +1,48 @@
 import tempfile
 import pathlib
 import os
-import pytest
-from inspectr.compare_funcs import extract_functions, compare_functions, main
+from inspectr.compare_funcs import extract_functions, main
 
 
 def test_extract_functions_simple():
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("def foo():\n    pass\n\ndef bar():\n    pass\n")
         path = f.name
     
     try:
         funcs = extract_functions(path)
-        assert 'foo' in funcs
-        assert 'bar' in funcs
+        assert "foo" in funcs
+        assert "bar" in funcs
     finally:
         os.unlink(path)
 
 
 def test_extract_functions_async():
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("async def async_foo():\n    pass\n")
         path = f.name
     
     try:
         funcs = extract_functions(path)
-        assert 'async_foo' in funcs
+        assert "async_foo" in funcs
     finally:
         os.unlink(path)
 
 
 def test_extract_functions_class_methods():
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("class MyClass:\n    def method(self):\n        pass\n")
         path = f.name
     
     try:
         funcs = extract_functions(path)
-        assert 'method' in funcs
+        assert "method" in funcs
     finally:
         os.unlink(path)
 
 
 def test_extract_functions_syntax_error():
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("def broken(\n")
         path = f.name
     
@@ -75,11 +74,11 @@ def test_main_nonexistent_file_list(capsys):
 
 
 def test_main_dir_not_directory(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
         f.write("test.py\n")
         list_path = pathlib.Path(f.name)
     
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         not_dir = pathlib.Path(f.name)
     
     try:

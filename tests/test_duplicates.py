@@ -1,6 +1,5 @@
 import tempfile
 import pathlib
-import pytest
 from inspectr.duplicates import calculate_similarity, find_duplicates, main
 
 
@@ -33,7 +32,7 @@ def test_calculate_similarity_empty():
 
 
 def test_find_duplicates_basic():
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("x = 1\n" * 15)
         path1 = f.name
     
@@ -45,7 +44,7 @@ def test_find_duplicates_basic():
 
 
 def test_main_with_files(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("def foo():\n    pass\n" * 5)
         path = pathlib.Path(f.name)
     
@@ -58,7 +57,7 @@ def test_main_with_files(capsys):
 
 
 def test_main_with_kwargs(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("x = 1\n" * 10)
         path = pathlib.Path(f.name)
     

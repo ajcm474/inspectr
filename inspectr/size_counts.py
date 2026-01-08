@@ -11,15 +11,21 @@ FUNC_PARAMS = 5
 CLASS_METHODS = 20
 
 
-def main(files: List[pathlib.Path], **kwargs) -> None:
+def validate_files(files: List[pathlib.Path]) -> bool:
+    """Validate that all files exist and are regular files."""
     for f in files:
         if not f.exists():
             print(f"Error: File does not exist: {f}")
-            return
-        
+            return False
         if not f.is_file():
             print(f"Error: Not a file: {f}")
-            return
+            return False
+    return True
+
+
+def main(files: List[pathlib.Path], **kwargs) -> None:
+    if not validate_files(files):
+        return
 
     # TODO: rename these
     # Counters and diagnostics
@@ -85,4 +91,3 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
     print(f"  Methods > {METHOD_LINES} lines: {len(methods_over_50)}")
     print(f"  Functions > {FUNC_PARAMS} parameters: {len(functions_over_5params)}")
     print(f"  Classes > {CLASS_METHODS} public methods: {len(classes_over_20methods)}")
-

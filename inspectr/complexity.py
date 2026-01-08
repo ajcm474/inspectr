@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import ast
-import sys
 from dataclasses import dataclass, field
 from collections import defaultdict
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 from pathlib import Path
 from colorama import init, Fore, Style
 
@@ -33,7 +34,7 @@ class Complexity:
         self.details.append(detail)
         return self
     
-    def combine_sequential(self, other: 'Complexity') -> 'Complexity':
+    def combine_sequential(self, other: Complexity) -> Complexity:
         """For sequential operations, we add complexities"""
         is_approx = self.is_approximate or other.is_approximate
         details = self.details + other.details
@@ -48,7 +49,7 @@ class Complexity:
         
         return Complexity(expr, is_approx, details)
     
-    def combine_nested(self, other: 'Complexity') -> 'Complexity':
+    def combine_nested(self, other: Complexity) -> Complexity:
         """For nested operations, we multiply complexities"""
         is_approx = self.is_approximate or other.is_approximate
         details = self.details + other.details
@@ -63,7 +64,7 @@ class Complexity:
         
         return Complexity(expr, is_approx, details)
     
-    def max(self, other: 'Complexity') -> 'Complexity':
+    def max(self, other: Complexity) -> Complexity:
         """Return the maximum complexity (for if/else branches)"""
         # for branches, we should take the worse case
         # this is a simplified comparison
@@ -149,13 +150,13 @@ class Complexity:
         current = ""
         depth = 0
         for char in expr:
-            if char == '(':
+            if char == "(":
                 depth += 1
                 current += char
-            elif char == ')':
+            elif char == ")":
                 depth -= 1
                 current += char
-            elif char == '+' and depth == 0:
+            elif char == "+" and depth == 0:
                 if current.strip():
                     parts.append(current.strip())
                 current = ""
@@ -170,7 +171,7 @@ class Complexity:
                 continue
             
             # Check if this is a multiplication (e.g., n*n)
-            if '*' in part and 'log' not in part:
+            if "*" in part and "log" not in part:
                 # Parse as multiplication and convert to power
                 mult_result = self._parse_multiplication(part)
                 for term_type, coef in mult_result.items():
@@ -180,19 +181,19 @@ class Complexity:
             # Match different patterns
             if part == "1":
                 terms["1"] += 1
-            elif match := re.match(r'^(\d+)$', part):
+            elif match := re.match(r"^(\d+)$", part):
                 terms["1"] += int(match.group(1))
             elif part == "n":
                 terms["n"] += 1
-            elif match := re.match(r'^(\d+)n$', part):
+            elif match := re.match(r"^(\d+)n$", part):
                 terms["n"] += int(match.group(1))
             elif "n*log(n)" in part or "n log(n)" in part:
-                if match := re.match(r'^(\d+)\s*n\*log\(n\)$', part):
+                if match := re.match(r"^(\d+)\s*n\*log\(n\)$", part):
                     terms["n*log(n)"] += int(match.group(1))
                 else:
                     terms["n*log(n)"] += 1
             elif "log(n)" in part:
-                if match := re.match(r'^(\d+)\s*log\(n\)$', part):
+                if match := re.match(r"^(\d+)\s*log\(n\)$", part):
                     terms["log(n)"] += int(match.group(1))
                 else:
                     terms["log(n)"] += 1
@@ -213,7 +214,7 @@ class Complexity:
     
     def _parse_multiplication(self, expr: str) -> Dict[str, int]:
         """Parse a multiplication expression like n*n into term dict"""
-        parts = expr.split('*')
+        parts = expr.split("*")
         result_term = "1"
         result_coef = 1
         
@@ -227,10 +228,10 @@ class Complexity:
             else:
                 # Try to parse as term
                 import re
-                if match := re.match(r'^(\d+)n$', part):
+                if match := re.match(r"^(\d+)n$", part):
                     result_coef *= int(match.group(1))
                     result_term = self._multiply_term_types(result_term, "n")
-                elif match := re.match(r'^(\d+)$', part):
+                elif match := re.match(r"^(\d+)$", part):
                     result_coef *= int(match.group(1))
                 elif "n²" in part or "n^2" in part:
                     result_term = self._multiply_term_types(result_term, "n²")
@@ -304,7 +305,7 @@ class Complexity:
             return 3
         elif "n⁴" in term or "n^4" in term:
             return 4
-        elif match := re.match(r'n\^(\d+)', term):
+        elif match := re.match(r"n\^(\d+)", term):
             return int(match.group(1))
         elif "n" in term:
             return 1
@@ -361,16 +362,16 @@ class Complexity:
         
         for expr in [expr1, expr2]:
             # split by + if present
-            parts = expr.split('+') if '+' in expr else [expr]
+            parts = expr.split("+") if "+" in expr else [expr]
             for part in parts:
                 part = part.strip()
                 if part == "O(1)":
                     terms["1"] += 1
                 elif part == "O(n)":
                     terms["n"] += 1
-                elif match := re.match(r'O\((\d+)\)', part):
+                elif match := re.match(r"O\((\d+)\)", part):
                     terms["1"] += int(match.group(1))
-                elif match := re.match(r'O\((\d*)n\)', part):
+                elif match := re.match(r"O\((\d*)n\)", part):
                     coef = int(match.group(1)) if match.group(1) else 1
                     terms["n"] += coef
                 elif "n*log(n)" in part:
@@ -395,22 +396,22 @@ class Complexity:
     def _get_weight(self) -> int:
         """Get a rough weight for complexity comparison"""
         expr = self.expression
-        if 'n⁴' in expr or 'n^4' in expr:
+        if "n⁴" in expr or "n^4" in expr:
             return 4
-        elif 'n³' in expr or 'n^3' in expr:
+        elif "n³" in expr or "n^3" in expr:
             return 3
-        elif 'n²' in expr or 'n^2' in expr:
+        elif "n²" in expr or "n^2" in expr:
             return 2
-        elif 'n*log' in expr:
+        elif "n*log" in expr:
             return 1.5
-        elif 'n' in expr:
+        elif "n" in expr:
             return 1
-        elif 'log' in expr:
+        elif "log" in expr:
             return 0.5
         else:
             return 0
     
-    def simplify(self) -> 'Complexity':
+    def simplify(self) -> Complexity:
         """Simplify the complexity expression WITHOUT reducing to dominant term"""
         expr = self.expression
         
@@ -456,13 +457,13 @@ class Complexity:
         depth = 0
         
         for char in expr:
-            if char == '(':
+            if char == "(":
                 depth += 1
                 current += char
-            elif char == ')':
+            elif char == ")":
                 depth -= 1
                 current += char
-            elif char == '*' and depth == 0:
+            elif char == "*" and depth == 0:
                 parts.append(current)
                 current = ""
             else:
@@ -597,15 +598,15 @@ class Analyzer(ast.NodeVisitor):
             if isinstance(stmt, ast.Assign):
                 if isinstance(stmt.value, ast.Call):
                     if isinstance(stmt.value.func, ast.Name):
-                        if stmt.value.func.id == 'set':
+                        if stmt.value.func.id == "set":
                             # Variable is assigned a set
                             for target in stmt.targets:
                                 if isinstance(target, ast.Name):
-                                    self.variable_types[target.id] = 'set'
-                        elif stmt.value.func.id == 'list':
+                                    self.variable_types[target.id] = "set"
+                        elif stmt.value.func.id == "list":
                             for target in stmt.targets:
                                 if isinstance(target, ast.Name):
-                                    self.variable_types[target.id] = 'list'
+                                    self.variable_types[target.id] = "list"
         
         # Start with O(0) by using special marker
         total = None
@@ -708,9 +709,9 @@ class Analyzer(ast.NodeVisitor):
         """Estimate iteration count for loop iterator"""
         if isinstance(iter_node, ast.Call):
             if isinstance(iter_node.func, ast.Name):
-                if iter_node.func.id == 'range':
+                if iter_node.func.id == "range":
                     return Complexity.linear(1)
-                elif iter_node.func.id in ('enumerate', 'zip'):
+                elif iter_node.func.id in ("enumerate", "zip"):
                     # these iterate over their arguments
                     if iter_node.args:
                         return self.estimate_iteration_count(iter_node.args[0])
@@ -779,22 +780,22 @@ class Analyzer(ast.NodeVisitor):
             
             # built-in functions with known complexity
             complexity_map = {
-                'len': Complexity.constant(),
-                'print': Complexity.constant(),
-                'sum': Complexity.linear(1),
-                'max': Complexity.linear(1),
-                'min': Complexity.linear(1),
-                'sorted': Complexity("O(n*log(n))", False),
-                'reversed': Complexity.linear(1),
-                'enumerate': Complexity.constant(),
-                'zip': Complexity.constant(),
-                'map': Complexity.constant(),
-                'filter': Complexity.constant(),
-                'list': Complexity.linear(1) if node.args else Complexity.constant(),
-                'set': Complexity.linear(1) if node.args else Complexity.constant(),
-                'dict': Complexity.constant(),
-                'all': Complexity.linear(1),
-                'any': Complexity.linear(1),
+                "len": Complexity.constant(),
+                "print": Complexity.constant(),
+                "sum": Complexity.linear(1),
+                "max": Complexity.linear(1),
+                "min": Complexity.linear(1),
+                "sorted": Complexity("O(n*log(n))", False),
+                "reversed": Complexity.linear(1),
+                "enumerate": Complexity.constant(),
+                "zip": Complexity.constant(),
+                "map": Complexity.constant(),
+                "filter": Complexity.constant(),
+                "list": Complexity.linear(1) if node.args else Complexity.constant(),
+                "set": Complexity.linear(1) if node.args else Complexity.constant(),
+                "dict": Complexity.constant(),
+                "all": Complexity.linear(1),
+                "any": Complexity.linear(1),
             }
             
             if func_name in complexity_map:
@@ -837,26 +838,26 @@ class Analyzer(ast.NodeVisitor):
     def analyze_method_call(self, attr: ast.Attribute) -> Complexity:
         """Analyze method call complexity"""
         method_complexity = {
-            'append': Complexity.constant(),
-            'pop': Complexity.constant(),
-            'insert': Complexity.linear(1),
-            'remove': Complexity.linear(1),
-            'sort': Complexity("O(n*log(n))", False),
-            'index': Complexity.linear(1),
-            'count': Complexity.linear(1),
-            'extend': Complexity.linear(1),
-            'copy': Complexity.linear(1),
-            'clear': Complexity.constant(),
-            'get': Complexity.constant(),
-            'items': Complexity.linear(1),
-            'keys': Complexity.linear(1),
-            'values': Complexity.linear(1),
-            'update': Complexity.linear(1),
-            'add': Complexity.constant(),  # set.add
-            'discard': Complexity.constant(),  # set.discard
-            'union': Complexity.linear(1),
-            'intersection': Complexity.linear(1),
-            'difference': Complexity.linear(1),
+            "append": Complexity.constant(),
+            "pop": Complexity.constant(),
+            "insert": Complexity.linear(1),
+            "remove": Complexity.linear(1),
+            "sort": Complexity("O(n*log(n))", False),
+            "index": Complexity.linear(1),
+            "count": Complexity.linear(1),
+            "extend": Complexity.linear(1),
+            "copy": Complexity.linear(1),
+            "clear": Complexity.constant(),
+            "get": Complexity.constant(),
+            "items": Complexity.linear(1),
+            "keys": Complexity.linear(1),
+            "values": Complexity.linear(1),
+            "update": Complexity.linear(1),
+            "add": Complexity.constant(),  # set.add
+            "discard": Complexity.constant(),  # set.discard
+            "union": Complexity.linear(1),
+            "intersection": Complexity.linear(1),
+            "difference": Complexity.linear(1),
         }
         
         return method_complexity.get(attr.attr, Complexity.approximate("O(?)")).simplify()
@@ -884,14 +885,14 @@ class Analyzer(ast.NodeVisitor):
                     elif isinstance(comparator, ast.Name):
                         # check variable type if known
                         var_type = self.variable_types.get(comparator.id)
-                        if var_type in ('List', 'list'):
+                        if var_type in ("List", "list"):
                             self.anti_patterns.append(AntiPattern(
                                 line=node.lineno,
                                 pattern_type="membership_check",
                                 description="Membership test with List type - consider using Set for O(1) lookup instead of O(n)"
                             ))
                             return Complexity.linear(1).with_detail("list membership check")
-                        elif var_type in ('Set', 'set', 'Dict', 'dict'):
+                        elif var_type in ("Set", "set", "Dict", "dict"):
                             return Complexity.constant().with_detail("set/dict membership check")
                         else:
                             # unknown type - assume worst case (list)
@@ -913,14 +914,21 @@ class Analyzer(ast.NodeVisitor):
         
         return Complexity.constant()
 
+
+def validate_file(file_path: Path) -> bool:
+    """Validate that a file exists and is a regular file."""
+    if not file_path.exists():
+        print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} File does not exist: {file_path}")
+        return False
+    if not file_path.is_file():
+        print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} Not a file: {file_path}")
+        return False
+    return True
+
+
 def main(files: List[Path], **kwargs) -> None:
     for file_path in files:
-        if not file_path.exists():
-            print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} File does not exist: {file_path}")
-            continue
-        
-        if not file_path.is_file():
-            print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} Not a file: {file_path}")
+        if not validate_file(file_path):
             continue
         
         try:
@@ -958,4 +966,3 @@ def main(files: List[Path], **kwargs) -> None:
         
         if has_approximate:
             print(f"{Fore.YELLOW}{Style.BRIGHT}Note:{Style.RESET_ALL} {Fore.RED}{Style.BRIGHT}*{Style.RESET_ALL} Complexity marked with * is approximate due to static analysis limitations")
-

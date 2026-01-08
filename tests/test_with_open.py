@@ -5,7 +5,7 @@ from inspectr.with_open import main
 
 
 def test_open_with_with_statement(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("with open('file.txt') as f:\n    pass\n")
         path = pathlib.Path(f.name)
     
@@ -18,7 +18,7 @@ def test_open_with_with_statement(capsys):
 
 
 def test_open_without_with(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("f = open('file.txt')\n")
         path = pathlib.Path(f.name)
     
@@ -31,7 +31,7 @@ def test_open_without_with(capsys):
 
 
 def test_no_open_calls(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("def foo():\n    pass\n")
         path = pathlib.Path(f.name)
     
@@ -56,11 +56,11 @@ def test_empty_files_list():
 
 
 def test_multiple_files(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f1:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f1:
         f1.write("f = open('file.txt')\n")
         path1 = pathlib.Path(f1.name)
     
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f2:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f2:
         f2.write("with open('file.txt') as f:\n    pass\n")
         path2 = pathlib.Path(f2.name)
     

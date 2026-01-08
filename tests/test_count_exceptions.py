@@ -1,11 +1,10 @@
 import tempfile
 import pathlib
-import pytest
 from inspectr.count_exceptions import main
 
 
 def test_bare_except(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("try:\n    pass\nexcept:\n    pass\n")
         path = pathlib.Path(f.name)
     
@@ -18,7 +17,7 @@ def test_bare_except(capsys):
 
 
 def test_typed_except(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("try:\n    pass\nexcept ValueError:\n    pass\n")
         path = pathlib.Path(f.name)
     
@@ -31,7 +30,7 @@ def test_typed_except(capsys):
 
 
 def test_multiple_exception_handlers(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("try:\n    pass\nexcept ValueError:\n    pass\nexcept KeyError:\n    pass\n")
         path = pathlib.Path(f.name)
     
@@ -44,7 +43,7 @@ def test_multiple_exception_handlers(capsys):
 
 
 def test_tuple_exceptions(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("try:\n    pass\nexcept (ValueError, KeyError):\n    pass\n")
         path = pathlib.Path(f.name)
     
@@ -57,7 +56,7 @@ def test_tuple_exceptions(capsys):
 
 
 def test_no_exceptions(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("def foo():\n    return 42\n")
         path = pathlib.Path(f.name)
     
@@ -77,7 +76,7 @@ def test_validates_file_exists(capsys):
 
 
 def test_handles_syntax_errors(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("try:\n")
         path = pathlib.Path(f.name)
     

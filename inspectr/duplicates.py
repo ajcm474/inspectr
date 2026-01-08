@@ -1,7 +1,7 @@
 import sys
 import pathlib
 from collections import defaultdict
-from typing import List, Tuple
+from typing import List
 
 
 def calculate_similarity(lines1: List[str], lines2: List[str]) -> float:
@@ -188,18 +188,24 @@ def find_duplicates(files, block_size=10, min_occur=3):
         yield fname, lnum, actual_size, similar_blocks
 
 
-def main(files: List[pathlib.Path], block_size: int = 10, min_occur: int = 3) -> None:
+def validate_files(files: List[pathlib.Path]) -> bool:
+    """Validate that all files exist and are regular files."""
     for f in files:
         if not f.exists():
             print(f"Error: File does not exist: {f}")
-            return
-        
+            return False
         if not f.is_file():
             print(f"Error: Not a file: {f}")
-            return
-    
+            return False
+    return True
+
+
+def main(files: List[pathlib.Path], block_size: int = 10, min_occur: int = 3) -> None:
     if not files:
         print("Usage: inspectr duplicates [--block-size N] [--min-occur N] file1.py [file2.py ...]")
+        return
+
+    if not validate_files(files):
         return
 
     file_paths = [str(f) for f in files]
@@ -214,4 +220,3 @@ def main(files: List[pathlib.Path], block_size: int = 10, min_occur: int = 3) ->
         
         output = "".join(output_parts).rstrip(" and")
         print(output)
-

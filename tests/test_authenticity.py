@@ -1,13 +1,10 @@
 import tempfile
 import pathlib
-import pytest
-from io import StringIO
-import sys
 from inspectr.authenticity import main
 
 
 def test_detects_todo_comments(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("# TODO: fix this\n")
         f.write("def foo(): pass\n")
         path = pathlib.Path(f.name)
@@ -21,7 +18,7 @@ def test_detects_todo_comments(capsys):
 
 
 def test_detects_stub_with_pass(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("def stub():\n    pass\n")
         path = pathlib.Path(f.name)
     
@@ -35,8 +32,8 @@ def test_detects_stub_with_pass(capsys):
 
 
 def test_detects_stub_with_docstring_only(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-        f.write('def stub():\n    """Docstring"""\n')
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write("def stub():\n    \"\"\"Docstring\"\"\"\n")
         path = pathlib.Path(f.name)
     
     try:
@@ -48,7 +45,7 @@ def test_detects_stub_with_docstring_only(capsys):
 
 
 def test_detects_stub_with_return_none(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("def stub():\n    return\n")
         path = pathlib.Path(f.name)
     
@@ -61,7 +58,7 @@ def test_detects_stub_with_return_none(capsys):
 
 
 def test_not_stub_with_real_code(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("def real():\n    return 42\n")
         path = pathlib.Path(f.name)
     
@@ -81,7 +78,7 @@ def test_validates_file_exists(capsys):
 
 
 def test_handles_syntax_errors(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("def broken(\n")
         path = pathlib.Path(f.name)
     
@@ -94,7 +91,7 @@ def test_handles_syntax_errors(capsys):
 
 
 def test_empty_file(capsys):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("")
         path = pathlib.Path(f.name)
     
