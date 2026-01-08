@@ -127,9 +127,13 @@ def compute_merged_similarities(
         merged_ranges: List[Tuple[int, int]] = []
         
         for range_start, range_end in ranges:
-            if (merged_ranges
-                    and ranges_overlap(merged_ranges[-1][0], merged_ranges[-1][1],
-                                       range_start, range_end)):
+            if (
+                merged_ranges
+                and ranges_overlap(
+                    merged_ranges[-1][0], merged_ranges[-1][1],
+                    range_start, range_end
+                )
+            ):
                 prev_start, prev_end = merged_ranges[-1]
                 merged_ranges[-1] = (
                     min(prev_start, range_start),

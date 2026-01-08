@@ -63,9 +63,11 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
                     elif isinstance(stmt, ast.Return) and stmt.value is None:
                         non_docstring_seen = True
                         continue
-                    elif (isinstance(stmt, ast.Expr)
-                            and isinstance(stmt.value, ast.Constant)
-                            and isinstance(stmt.value.value, str)):
+                    elif (
+                        isinstance(stmt, ast.Expr)
+                        and isinstance(stmt.value, ast.Constant)
+                        and isinstance(stmt.value.value, str)
+                    ):
                         # ignore docstrings
                         if i == 0 or (i == 1 and not non_docstring_seen):
                             continue

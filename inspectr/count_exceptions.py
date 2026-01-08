@@ -37,8 +37,10 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
                 if node.type is None:
                     bare_or_exception_per_file[f] += 1
                 # except Exception
-                elif (isinstance(node.type, ast.Name)
-                        and node.type.id == "Exception"):
+                elif (
+                    isinstance(node.type, ast.Name)
+                    and node.type.id == "Exception"
+                ):
                     bare_or_exception_per_file[f] += 1
                 else:
                     # record the exception type (supports tuples)

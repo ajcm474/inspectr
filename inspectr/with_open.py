@@ -27,8 +27,10 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
     for filepath in files:
         tree = ast.parse(filepath.read_text(), filename=str(filepath))
         for node in ast.walk(tree):
-            if (isinstance(node, ast.Call)
-                    and getattr(node.func, "id", "") == "open"):
+            if (
+                isinstance(node, ast.Call)
+                and getattr(node.func, "id", "") == "open"
+            ):
                 is_in_with = any(
                     isinstance(p, ast.With) and node in ast.walk(p)
                     for p in ast.walk(tree)

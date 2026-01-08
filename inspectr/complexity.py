@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import re
 from dataclasses import dataclass, field
 from collections import defaultdict
 from typing import List, Dict, Optional
@@ -84,7 +85,7 @@ class Complexity:
     
     def _add_expressions(self, expr1: str, expr2: str) -> str:
         """Add two complexity expressions"""
-        import re
+
         
         # Parse both expressions into term dictionaries
         terms = defaultdict(int)
@@ -98,7 +99,7 @@ class Complexity:
     
     def _multiply_expressions(self, expr1: str, expr2: str) -> str:
         """Multiply two complexity expressions"""
-        import re
+
         
         # Handle constant multiplication
         if expr1 == "1":
@@ -134,7 +135,7 @@ class Complexity:
     
     def _parse_expression(self, expr: str) -> Dict[str, int]:
         """Parse a complexity expression into term types and coefficients"""
-        import re
+
         
         terms = defaultdict(int)
         
@@ -227,7 +228,7 @@ class Complexity:
                 continue
             else:
                 # Try to parse as term
-                import re
+
                 if match := re.match(r"^(\d+)n$", part):
                     result_coef *= int(match.group(1))
                     result_term = self._multiply_term_types(result_term, "n")
@@ -294,7 +295,7 @@ class Complexity:
     
     def _get_n_power(self, term: str) -> int:
         """Get the power of n in a term"""
-        import re
+
         
         if term == "1" or "log" in term and "n" not in term:
             return 0
@@ -356,7 +357,7 @@ class Complexity:
     
     def _combine_similar_terms(self, expr1: str, expr2: str) -> Optional[str]:
         """Combine similar complexity terms with coefficients"""
-        import re
+
         
         # parse expressions into a dict of complexity -> coefficient
         terms = defaultdict(int)
@@ -434,7 +435,7 @@ class Complexity:
     
     def _simplify_multiplications(self, expr: str) -> str:
         """Simplify multiplication expressions"""
-        import re
+
         
         # handle O(n²)*O(n²) -> O(n⁴) etc
         if "O(n²)*O(n²)" in expr:
@@ -956,28 +957,26 @@ class Analyzer(ast.NodeVisitor):
         return Complexity.constant()
 
 
-def validate_file(file_path: Path) -> bool:
-    """Validate that a file exists and is a regular file."""
+def read_file(file_path: Path) -> Optional[str]:
+    """Validate file and read its contents. Returns None on failure."""
     err = f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL}"
     if not file_path.exists():
         print(f"{err} File does not exist: {file_path}")
-        return False
+        return None
     if not file_path.is_file():
         print(f"{err} Not a file: {file_path}")
-        return False
-    return True
+        return None
+    try:
+        return file_path.read_text()
+    except Exception as e:
+        print(f"{err} Failed to read file: {e}")
+        return None
 
 
 def main(files: List[Path], **kwargs) -> None:
     for file_path in files:
-        if not validate_file(file_path):
-            continue
-        
-        err = f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL}"
-        try:
-            content = file_path.read_text()
-        except Exception as e:
-            print(f"{err} Failed to read file: {e}")
+        content = read_file(file_path)
+        if content is None:
             continue
         
         analyzer = Analyzer()
