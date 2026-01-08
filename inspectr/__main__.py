@@ -3,9 +3,16 @@ import pathlib
 import importlib
 
 
-def main():
+def validate_args() -> bool:
+    """Validate that at least a subtool name was provided."""
     if len(sys.argv) < 2:
         print("Usage: inspectr <subtool> [options] [files...]")
+        return False
+    return True
+
+
+def main():
+    if not validate_args():
         sys.exit(1)
 
     subtool = sys.argv[1]
@@ -31,7 +38,8 @@ def main():
         arg = remaining_args[i]
         if arg.startswith("--"):
             option_name = arg[2:].replace("-", "_")
-            if i + 1 < len(remaining_args) and not remaining_args[i + 1].startswith("--"):
+            if (i + 1 < len(remaining_args)
+                    and not remaining_args[i + 1].startswith("--")):
                 value = remaining_args[i + 1]
                 try:
                     kwargs[option_name] = int(value)

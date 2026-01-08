@@ -45,7 +45,8 @@ def test_no_open_calls(capsys):
 
 def test_validates_file_exists(capsys):
     path = pathlib.Path("/nonexistent/file.py")
-    main([path])
+    with pytest.raises(SystemExit):
+        main([path])
     output = capsys.readouterr().out
     assert "does not exist" in output
 

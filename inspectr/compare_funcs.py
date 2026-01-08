@@ -4,8 +4,8 @@ from collections import defaultdict
 from typing import List
 
 
-def extract_functions(file_path: str):
-    """Return a set of top-level functions and class methods from a Python file."""
+def extract_functions(file_path: str) -> List[str]:
+    """Return a list of function and method names from a Python file."""
     functions = []
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -21,7 +21,7 @@ def extract_functions(file_path: str):
     return functions
 
 
-def compare_functions(dir1: str, dir2: str, rel_files: list[str]):
+def compare_functions(dir1: str, dir2: str, rel_files: List[str]) -> None:
     functions_in_dir1 = defaultdict(list)
     functions_in_dir2 = defaultdict(list)
 
@@ -45,7 +45,8 @@ def compare_functions(dir1: str, dir2: str, rel_files: list[str]):
                 count1 = funcs1.count(fn)
                 count2 = funcs2.count(fn)
                 if count1 > 1 or count2 > 1:
-                    print(f"    - {fn} (appears {count1} times in dir1, {count2} times in dir2)")
+                    print(f"    - {fn} (appears {count1} times in dir1, "
+                          f"{count2} times in dir2)")
                 else:
                     print(f"    - {fn}")
         else:
@@ -67,7 +68,8 @@ def compare_functions(dir1: str, dir2: str, rel_files: list[str]):
             count1 = len(functions_in_dir1[fn])
             count2 = len(functions_in_dir2[fn])
             if count1 > 1 or count2 > 1:
-                print(f"  {fn} (appears {count1} times in dir1, {count2} times in dir2): {f1} -> {f2}")
+                print(f"  {fn} (appears {count1} times in dir1, "
+                      f"{count2} times in dir2): {f1} -> {f2}")
             else:
                 print(f"  {fn}: {f1} -> {f2}")
     else:
@@ -77,12 +79,11 @@ def compare_functions(dir1: str, dir2: str, rel_files: list[str]):
 def validate_inputs(files: List[Path]) -> bool:
     """Validate command line inputs for compare_funcs."""
     if len(files) < 3:
-        print(
-            "Usage: inspectr compare_funcs <files_list.txt> <dir1> <dir2>\n"
-            "  files_list.txt: text file containing relative paths to compare, one per line\n"
-            "  dir1: first directory\n"
-            "  dir2: second directory"
-        )
+        print("Usage: inspectr compare_funcs <files_list.txt> <dir1> <dir2>")
+        print("  files_list.txt: text file containing relative paths to "
+              "compare, one per line")
+        print("  dir1: first directory")
+        print("  dir2: second directory")
         return False
 
     files_list_path = files[0]

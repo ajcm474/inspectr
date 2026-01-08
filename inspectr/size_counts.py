@@ -57,12 +57,14 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
             if isinstance(node, ast.ClassDef):
                 public_methods = [
                     n for n in node.body
-                    if isinstance(n, ast.FunctionDef) and not n.name.startswith("_")
+                    if (isinstance(n, ast.FunctionDef)
+                        and not n.name.startswith("_"))
                 ]
                 n_public_methods = len(public_methods)
                 if n_public_methods > CLASS_METHODS:
                     method_names = [m.name for m in public_methods]
-                    classes_over_20methods.append((fname, node.name, n_public_methods, method_names))
+                    entry = (fname, node.name, n_public_methods, method_names)
+                    classes_over_20methods.append(entry)
 
     # Print diagnostics if counts > 0
     if files_over_1000:
@@ -83,11 +85,15 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
     if classes_over_20methods:
         print(f"\nClasses > {CLASS_METHODS} public methods:")
         for fname, cls_name, nmethods, method_names in classes_over_20methods:
-            print(f"  {fname}.{cls_name}: {nmethods} public methods -> {', '.join(method_names)}")
+            methods_str = ", ".join(method_names)
+            print(f"  {fname}.{cls_name}: {nmethods} public methods -> "
+                  f"{methods_str}")
 
     # Summary
     print("\nSummary:")
     print(f"  Files > {LINE_THRESHOLD} lines: {len(files_over_1000)}")
     print(f"  Methods > {METHOD_LINES} lines: {len(methods_over_50)}")
-    print(f"  Functions > {FUNC_PARAMS} parameters: {len(functions_over_5params)}")
-    print(f"  Classes > {CLASS_METHODS} public methods: {len(classes_over_20methods)}")
+    print(f"  Functions > {FUNC_PARAMS} parameters: "
+          f"{len(functions_over_5params)}")
+    print(f"  Classes > {CLASS_METHODS} public methods: "
+          f"{len(classes_over_20methods)}")

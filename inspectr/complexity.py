@@ -238,7 +238,8 @@ class Complexity:
                 elif "n³" in part or "n^3" in part:
                     result_term = self._multiply_term_types(result_term, "n³")
                 elif part == "log(n)":
-                    result_term = self._multiply_term_types(result_term, "log(n)")
+                    mult = self._multiply_term_types(result_term, "log(n)")
+                    result_term = mult
                 else:
                     result_term = self._multiply_term_types(result_term, part)
         
@@ -388,7 +389,8 @@ class Complexity:
         for complexity in ["n³", "n²", "n*log(n)", "n", "1"]:
             if complexity in terms and terms[complexity] > 0:
                 coef = terms[complexity]
-                result_parts.append(f"O({coef if coef > 1 else ''}{complexity})")
+                coef_str = coef if coef > 1 else ""
+                result_parts.append(f"O({coef_str}{complexity})")
         
         return "+".join(result_parts) if result_parts else None
     
@@ -412,7 +414,7 @@ class Complexity:
             return 0
     
     def simplify(self) -> Complexity:
-        """Simplify the complexity expression WITHOUT reducing to dominant term"""
+        """Simplify the complexity expression, without reducing to dominant term"""
         expr = self.expression
         
         # Extract inner expression
@@ -449,7 +451,8 @@ class Complexity:
         if n_count > 0:
             power_notation = {1: "²", 2: "⁴"}
             if n_count in power_notation:
-                expr = expr.replace("O(n)*O(n)", f"O(n{power_notation[n_count]})", 1)
+                replacement = f"O(n{power_notation[n_count]})"
+                expr = expr.replace("O(n)*O(n)", replacement, 1)
 
         # count individual O(n) terms being multiplied
         parts = []
@@ -535,7 +538,9 @@ class Analyzer(ast.NodeVisitor):
         self.results: List[FunctionAnalysis] = []
         self.anti_patterns: List[AntiPattern] = []
         
-    def analyze_file(self, content: str, filename: str = "<file>") -> List[FunctionAnalysis]:
+    def analyze_file(
+        self, content: str, filename: str = "<file>"
+    ) -> List[FunctionAnalysis]:
         """Analyze Python file content"""
         try:
             tree = ast.parse(content, filename)
@@ -651,19 +656,28 @@ class Analyzer(ast.NodeVisitor):
                     return Complexity.constant()
                 else:
                     # Assignment + value computation
-                    return Complexity.constant().combine_sequential(value_complexity)
+                    combined = Complexity.constant().combine_sequential(
+                        value_complexity
+                    )
+                    return combined
             elif isinstance(stmt, ast.AugAssign):
                 value_complexity = self.analyze_expr(stmt.value)
                 if value_complexity.expression == "O(1)":
                     return Complexity.constant()
                 else:
-                    return Complexity.constant().combine_sequential(value_complexity)
+                    combined = Complexity.constant().combine_sequential(
+                        value_complexity
+                    )
+                    return combined
             elif isinstance(stmt, ast.AnnAssign) and stmt.value:
                 value_complexity = self.analyze_expr(stmt.value)
                 if value_complexity.expression == "O(1)":
                     return Complexity.constant()
                 else:
-                    return Complexity.constant().combine_sequential(value_complexity)
+                    combined = Complexity.constant().combine_sequential(
+                        value_complexity
+                    )
+                    return combined
             return Complexity.constant()
         else:
             return Complexity.constant()
@@ -688,7 +702,8 @@ class Analyzer(ast.NodeVisitor):
             result = body_complexity.combine_nested(Complexity.linear(1))
             result.is_approximate = True
         
-        result = result.with_detail("while loop (unknown iterations)").simplify()
+        result = result.with_detail("while loop (unknown iterations)")
+        result = result.simplify()
         result.is_approximate = True
         return result
     
@@ -727,7 +742,10 @@ class Analyzer(ast.NodeVisitor):
     
     def analyze_expr(self, expr: ast.expr) -> Complexity:
         """Analyze expression complexity"""
-        if isinstance(expr, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
+        comprehension_types = (
+            ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp
+        )
+        if isinstance(expr, comprehension_types):
             return self.analyze_comprehension(expr)
         elif isinstance(expr, ast.Call):
             return self.analyze_call(expr)
@@ -768,7 +786,8 @@ class Analyzer(ast.NodeVisitor):
             self.anti_patterns.append(AntiPattern(
                 line=node.lineno,
                 pattern_type="list_comprehension",
-                description="List comprehension could potentially be replaced with generator expression for memory efficiency"
+                description=("List comprehension could potentially be replaced "
+                             "with generator expression for memory efficiency")
             ))
         
         return complexity.with_detail("comprehension").simplify()
@@ -779,6 +798,9 @@ class Analyzer(ast.NodeVisitor):
             func_name = node.func.id
             
             # built-in functions with known complexity
+            list_or_set = (
+                Complexity.linear(1) if node.args else Complexity.constant()
+            )
             complexity_map = {
                 "len": Complexity.constant(),
                 "print": Complexity.constant(),
@@ -791,8 +813,8 @@ class Analyzer(ast.NodeVisitor):
                 "zip": Complexity.constant(),
                 "map": Complexity.constant(),
                 "filter": Complexity.constant(),
-                "list": Complexity.linear(1) if node.args else Complexity.constant(),
-                "set": Complexity.linear(1) if node.args else Complexity.constant(),
+                "list": list_or_set,
+                "set": list_or_set,
                 "dict": Complexity.constant(),
                 "all": Complexity.linear(1),
                 "any": Complexity.linear(1),
@@ -806,9 +828,14 @@ class Analyzer(ast.NodeVisitor):
                     # already in call stack - check depth
                     depth = self.call_stack.count(func_name)
                     if depth >= self.max_call_depth:
-                        known_complexity = self.functions.get(func_name, Complexity.approximate("O(?)"))
-                        complexity = Complexity.approximate(f"at least {known_complexity.expression}")
-                        complexity.with_detail(f"(maximum recursion depth {self.max_call_depth} reached)")
+                        fallback = Complexity.approximate("O(?)")
+                        known = self.functions.get(func_name, fallback)
+                        complexity = Complexity.approximate(
+                            f"at least {known.expression}"
+                        )
+                        max_depth = self.max_call_depth
+                        detail = f"(maximum recursion depth {max_depth} reached)"
+                        complexity.with_detail(detail)
                     else:
                         # allow the recursive call but track it
                         self.call_stack.append(func_name)
@@ -860,7 +887,8 @@ class Analyzer(ast.NodeVisitor):
             "difference": Complexity.linear(1),
         }
         
-        return method_complexity.get(attr.attr, Complexity.approximate("O(?)")).simplify()
+        fallback = Complexity.approximate("O(?)")
+        return method_complexity.get(attr.attr, fallback).simplify()
     
     def analyze_compare(self, node: ast.Compare) -> Complexity:
         """Analyze comparison operations"""
@@ -874,13 +902,16 @@ class Analyzer(ast.NodeVisitor):
                         self.anti_patterns.append(AntiPattern(
                             line=node.lineno,
                             pattern_type="list_membership",
-                            description="Membership test with list literal - use set for O(1) lookup instead of O(n)"
+                            description=("Membership test with list literal - "
+                                         "use set for O(1) lookup instead of O(n)")
                         ))
-                        return Complexity.linear(1).with_detail("list membership check")
+                        detail = "list membership check"
+                        return Complexity.linear(1).with_detail(detail)
                     
                     elif isinstance(comparator, ast.Set):
                         # set literal membership test - O(1)
-                        return Complexity.constant().with_detail("set membership check")
+                        detail = "set membership check"
+                        return Complexity.constant().with_detail(detail)
                     
                     elif isinstance(comparator, ast.Name):
                         # check variable type if known
@@ -889,39 +920,50 @@ class Analyzer(ast.NodeVisitor):
                             self.anti_patterns.append(AntiPattern(
                                 line=node.lineno,
                                 pattern_type="membership_check",
-                                description="Membership test with List type - consider using Set for O(1) lookup instead of O(n)"
+                                description=("Membership test with List type - "
+                                             "consider using Set for O(1) "
+                                             "lookup instead of O(n)")
                             ))
-                            return Complexity.linear(1).with_detail("list membership check")
+                            detail = "list membership check"
+                            return Complexity.linear(1).with_detail(detail)
                         elif var_type in ("Set", "set", "Dict", "dict"):
-                            return Complexity.constant().with_detail("set/dict membership check")
+                            detail = "set/dict membership check"
+                            return Complexity.constant().with_detail(detail)
                         else:
                             # unknown type - assume worst case (list)
                             self.anti_patterns.append(AntiPattern(
                                 line=node.lineno,
                                 pattern_type="membership_check",
-                                description="Membership test with unknown type - if this is a list, consider using set for O(1) lookup"
+                                description=("Membership test with unknown type "
+                                             "- if this is a list, consider "
+                                             "using set for O(1) lookup")
                             ))
-                            return Complexity.approximate("O(n)").with_detail("membership check (unknown type)")
+                            detail = "membership check (unknown type)"
+                            return Complexity.approximate("O(n)").with_detail(detail)
                     
                     elif isinstance(comparator, ast.Attribute):
                         # accessing an attribute - assume list for worst case
                         self.anti_patterns.append(AntiPattern(
                             line=node.lineno,
                             pattern_type="membership_check",
-                            description="Membership test with unknown type - if this is a list, consider using set for O(1) lookup"
+                            description=("Membership test with unknown type "
+                                         "- if this is a list, consider "
+                                         "using set for O(1) lookup")
                         ))
-                        return Complexity.approximate("O(n)").with_detail("membership check (unknown type)")
+                        detail = "membership check (unknown type)"
+                        return Complexity.approximate("O(n)").with_detail(detail)
         
         return Complexity.constant()
 
 
 def validate_file(file_path: Path) -> bool:
     """Validate that a file exists and is a regular file."""
+    err = f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL}"
     if not file_path.exists():
-        print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} File does not exist: {file_path}")
+        print(f"{err} File does not exist: {file_path}")
         return False
     if not file_path.is_file():
-        print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} Not a file: {file_path}")
+        print(f"{err} Not a file: {file_path}")
         return False
     return True
 
@@ -931,10 +973,11 @@ def main(files: List[Path], **kwargs) -> None:
         if not validate_file(file_path):
             continue
         
+        err = f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL}"
         try:
             content = file_path.read_text()
         except Exception as e:
-            print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} Failed to read file: {e}")
+            print(f"{err} Failed to read file: {e}")
             continue
         
         analyzer = Analyzer()
@@ -942,27 +985,37 @@ def main(files: List[Path], **kwargs) -> None:
         try:
             results = analyzer.analyze_file(content, str(file_path))
         except ValueError as e:
-            print(f"{Fore.RED}{Style.BRIGHT}Analysis failed:{Style.RESET_ALL} {e}")
+            fail = f"{Fore.RED}{Style.BRIGHT}Analysis failed:{Style.RESET_ALL}"
+            print(f"{fail} {e}")
             continue
         
         print(f"\n{Fore.CYAN}{'═' * 80}{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}{Style.BRIGHT}  Python Complexity Analysis: {file_path}{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}{'═' * 80}{Style.RESET_ALL}\n")
+        print(f"{Fore.CYAN}{Style.BRIGHT}  Python Complexity Analysis: "
+              f"{file_path}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{'═' * 80}{Style.RESET_ALL}")
+        print()
         
         has_approximate = any(r.complexity.is_approximate for r in results)
         
         for analysis in results:
             approx_marker = " *" if analysis.complexity.is_approximate else ""
             
-            print(f"{Fore.GREEN}{Style.BRIGHT}Function/Method:{Style.RESET_ALL} {Fore.YELLOW}{analysis.name}{Style.RESET_ALL}")
-            print(f"  {Fore.BLUE}{Style.BRIGHT}Complexity:{Style.RESET_ALL} {Fore.MAGENTA}{analysis.complexity.expression}{Style.RESET_ALL}{Fore.RED}{Style.BRIGHT}{approx_marker}{Style.RESET_ALL}")
+            print(f"{Fore.GREEN}{Style.BRIGHT}Function/Method:{Style.RESET_ALL} "
+                  f"{Fore.YELLOW}{analysis.name}{Style.RESET_ALL}")
+            print(f"  {Fore.BLUE}{Style.BRIGHT}Complexity:{Style.RESET_ALL} "
+                  f"{Fore.MAGENTA}{analysis.complexity.expression}{Style.RESET_ALL}"
+                  f"{Fore.RED}{Style.BRIGHT}{approx_marker}{Style.RESET_ALL}")
             
             if analysis.anti_patterns:
-                print(f"  {Fore.YELLOW}{Style.BRIGHT}⚠ Performance Issues:{Style.RESET_ALL}")
+                print(f"  {Fore.YELLOW}{Style.BRIGHT}⚠ Performance Issues:"
+                      f"{Style.RESET_ALL}")
                 for ap in analysis.anti_patterns:
-                    print(f"    {Fore.RED}•{Style.RESET_ALL} [line {ap.line}]: {Fore.YELLOW}{ap.description}{Style.RESET_ALL}")
+                    print(f"    {Fore.RED}•{Style.RESET_ALL} [line {ap.line}]: "
+                          f"{Fore.YELLOW}{ap.description}{Style.RESET_ALL}")
             
             print()
         
         if has_approximate:
-            print(f"{Fore.YELLOW}{Style.BRIGHT}Note:{Style.RESET_ALL} {Fore.RED}{Style.BRIGHT}*{Style.RESET_ALL} Complexity marked with * is approximate due to static analysis limitations")
+            print(f"{Fore.YELLOW}{Style.BRIGHT}Note:{Style.RESET_ALL} "
+                  f"{Fore.RED}{Style.BRIGHT}*{Style.RESET_ALL} Complexity marked "
+                  f"with * is approximate due to static analysis limitations")

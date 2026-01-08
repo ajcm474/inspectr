@@ -43,7 +43,11 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
             # Empty try/except blocks
             if isinstance(node, ast.Try):
                 try_empty = len(node.body) == 0
-                except_empty = all(len(h.body) == 0 or all(isinstance(s, ast.Pass) for s in h.body) for h in node.handlers)
+                except_empty = all(
+                    len(h.body) == 0
+                    or all(isinstance(s, ast.Pass) for s in h.body)
+                    for h in node.handlers
+                )
                 if try_empty and except_empty:
                     empty_try_except_count += 1
 
@@ -59,7 +63,9 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
                     elif isinstance(stmt, ast.Return) and stmt.value is None:
                         non_docstring_seen = True
                         continue
-                    elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+                    elif (isinstance(stmt, ast.Expr)
+                            and isinstance(stmt.value, ast.Constant)
+                            and isinstance(stmt.value.value, str)):
                         # ignore docstrings
                         if i == 0 or (i == 1 and not non_docstring_seen):
                             continue

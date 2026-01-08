@@ -4,8 +4,12 @@ import sys
 from typing import List
 
 
-def validate_files(files: List[pathlib.Path]) -> bool:
-    """Validate that all files exist and are regular files."""
+def validate_inputs(files: List[pathlib.Path]) -> bool:
+    """Validate that files list is not empty and all files exist."""
+    if not files:
+        print("Usage: inspectr with_open <file1> [file2 ...]")
+        return False
+
     for f in files:
         if not f.exists():
             print(f"Error: File does not exist: {f}")
@@ -17,16 +21,17 @@ def validate_files(files: List[pathlib.Path]) -> bool:
 
 
 def main(files: List[pathlib.Path], **kwargs) -> None:
-    if not files:
-        print("Usage: inspectr with_open <file1> [file2 ...]")
+    if not validate_inputs(files):
         sys.exit(1)
-
-    if not validate_files(files):
-        return
 
     for filepath in files:
         tree = ast.parse(filepath.read_text(), filename=str(filepath))
         for node in ast.walk(tree):
-            if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "open":
-                if not any(isinstance(p, ast.With) and node in ast.walk(p) for p in ast.walk(tree)):
+            if (isinstance(node, ast.Call)
+                    and getattr(node.func, "id", "") == "open"):
+                is_in_with = any(
+                    isinstance(p, ast.With) and node in ast.walk(p)
+                    for p in ast.walk(tree)
+                )
+                if not is_in_with:
                     print(f"{filepath}:{node.lineno}: open() outside with")

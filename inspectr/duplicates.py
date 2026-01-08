@@ -1,7 +1,7 @@
 import sys
 import pathlib
 from collections import defaultdict
-from typing import List
+from typing import List, Dict, Tuple, Iterator
 
 
 def calculate_similarity(lines1: List[str], lines2: List[str]) -> float:
@@ -11,7 +11,7 @@ def calculate_similarity(lines1: List[str], lines2: List[str]) -> float:
     return matches / max(len(lines1), len(lines2))
 
 
-def ranges_overlap(start1, end1, start2, end2):
+def ranges_overlap(start1: int, end1: int, start2: int, end2: int) -> bool:
     """Check if two ranges overlap by more than 50%"""
     overlap_start = max(start1, start2)
     overlap_end = min(end1, end2)
@@ -29,11 +29,17 @@ def ranges_overlap(start1, end1, start2, end2):
     return overlap_pct1 > 0.5 or overlap_pct2 > 0.5
 
 
-def merge_overlapping_groups(groups, block_size, file_lines):
-    """Merge groups that have overlapping ranges by more than 50%, recompute similarity after merging"""
+def merge_overlapping_groups(
+    groups: List[Tuple[str, int, List[Tuple[str, int, float]]]],
+    block_size: int,
+    file_lines: Dict[str, List[str]]
+) -> List[Tuple[str, int, int, List[Tuple[str, int, float]]]]:
+    """Merge groups that have overlapping ranges by more than 50%,
+    recompute similarity after merging"""
     if not groups:
         return []
     
+    groups_by_file: Dict[str, List[Tuple[int, List[Tuple[str, int, float]]]]]
     groups_by_file = defaultdict(list)
     for fname, lnum, similar_blocks in groups:
         groups_by_file[fname].append((lnum, similar_blocks))
@@ -45,7 +51,7 @@ def merge_overlapping_groups(groups, block_size, file_lines):
         
         current_start = file_groups[0][0]
         current_end = current_start + block_size - 1
-        current_similar_dict = {}
+        current_similar_dict: Dict[str, List[Tuple[int, int]]] = {}
         
         for f, l, s in file_groups[0][1]:
             end = l + block_size - 1
@@ -73,7 +79,9 @@ def merge_overlapping_groups(groups, block_size, file_lines):
                     fname, current_start, current_end,
                     current_similar_dict, file_lines
                 )
-                merged_groups.append((fname, current_start, actual_size, merged_similar))
+                merged_groups.append(
+                    (fname, current_start, actual_size, merged_similar)
+                )
                 
                 current_start = lnum
                 current_end = end_line
@@ -90,14 +98,21 @@ def merge_overlapping_groups(groups, block_size, file_lines):
             fname, current_start, current_end,
             current_similar_dict, file_lines
         )
-        merged_groups.append((fname, current_start, actual_size, merged_similar))
+        entry = (fname, current_start, actual_size, merged_similar)
+        merged_groups.append(entry)
     
     return merged_groups
 
 
-def compute_merged_similarities(fname, start, end, similar_dict, file_lines):
+def compute_merged_similarities(
+    fname: str,
+    start: int,
+    end: int,
+    similar_dict: Dict[str, List[Tuple[int, int]]],
+    file_lines: Dict[str, List[str]]
+) -> List[Tuple[str, int, float]]:
     """Compute similarity for merged ranges"""
-    merged_similar = []
+    merged_similar: List[Tuple[str, int, float]] = []
     
     if fname not in file_lines:
         return merged_similar
@@ -109,12 +124,17 @@ def compute_merged_similarities(fname, start, end, similar_dict, file_lines):
             continue
         
         ranges.sort()
-        merged_ranges = []
+        merged_ranges: List[Tuple[int, int]] = []
         
         for range_start, range_end in ranges:
-            if merged_ranges and ranges_overlap(merged_ranges[-1][0], merged_ranges[-1][1], range_start, range_end):
+            if (merged_ranges
+                    and ranges_overlap(merged_ranges[-1][0], merged_ranges[-1][1],
+                                       range_start, range_end)):
                 prev_start, prev_end = merged_ranges[-1]
-                merged_ranges[-1] = (min(prev_start, range_start), max(prev_end, range_end))
+                merged_ranges[-1] = (
+                    min(prev_start, range_start),
+                    max(prev_end, range_end)
+                )
             else:
                 merged_ranges.append((range_start, range_end))
         
@@ -126,7 +146,11 @@ def compute_merged_similarities(fname, start, end, similar_dict, file_lines):
     return merged_similar
 
 
-def find_duplicates(files, block_size=10, min_occur=3):
+def find_duplicates(
+    files: List[str],
+    block_size: int = 10,
+    min_occur: int = 3
+) -> Iterator[Tuple[str, int, int, List[Tuple[str, int, float]]]]:
     """
     Find duplicate blocks of code across files.
 
@@ -136,9 +160,10 @@ def find_duplicates(files, block_size=10, min_occur=3):
         min_occur: minimum number of occurrences to report
 
     Yields:
-        (primary_filename, primary_line, actual_block_size, [(other_file, other_line, similarity), ...])
+        (primary_filename, primary_line, actual_block_size,
+         [(other_file, other_line, similarity), ...])
     """
-    file_lines = {}
+    file_lines: Dict[str, List[str]] = {}
     for fname in files:
         try:
             with open(fname, encoding="utf-8") as f:
@@ -147,15 +172,15 @@ def find_duplicates(files, block_size=10, min_occur=3):
             print(f"Could not read {fname}: {e}", file=sys.stderr)
             continue
 
-    all_blocks = []
+    all_blocks: List[Tuple[str, int, List[str]]] = []
     for fname in file_lines:
         lines = file_lines[fname]
         for i in range(len(lines) - block_size + 1):
             block_lines = lines[i:i + block_size]
             all_blocks.append((fname, i + 1, block_lines))
 
-    reported = set()
-    groups = []
+    reported: set[Tuple[str, int]] = set()
+    groups: List[Tuple[str, int, List[Tuple[str, int, float]]]] = []
 
     for i, (fname1, lnum1, block1) in enumerate(all_blocks):
         key1 = (fname1, lnum1)
@@ -163,7 +188,7 @@ def find_duplicates(files, block_size=10, min_occur=3):
         if key1 in reported:
             continue
         
-        similar_blocks = []
+        similar_blocks: List[Tuple[str, int, float]] = []
         
         for j, (fname2, lnum2, block2) in enumerate(all_blocks):
             if i >= j:
@@ -188,8 +213,13 @@ def find_duplicates(files, block_size=10, min_occur=3):
         yield fname, lnum, actual_size, similar_blocks
 
 
-def validate_files(files: List[pathlib.Path]) -> bool:
-    """Validate that all files exist and are regular files."""
+def validate_inputs(files: List[pathlib.Path]) -> bool:
+    """Validate that files list is not empty and all files exist."""
+    if not files:
+        print("Usage: inspectr duplicates [--block-size N] [--min-occur N] "
+              "file1.py [file2.py ...]")
+        return False
+
     for f in files:
         if not f.exists():
             print(f"Error: File does not exist: {f}")
@@ -200,23 +230,29 @@ def validate_files(files: List[pathlib.Path]) -> bool:
     return True
 
 
-def main(files: List[pathlib.Path], block_size: int = 10, min_occur: int = 3) -> None:
-    if not files:
-        print("Usage: inspectr duplicates [--block-size N] [--min-occur N] file1.py [file2.py ...]")
-        return
-
-    if not validate_files(files):
+def main(
+    files: List[pathlib.Path],
+    block_size: int = 10,
+    min_occur: int = 3
+) -> None:
+    if not validate_inputs(files):
         return
 
     file_paths = [str(f) for f in files]
-    for fname, lnum, block_sz, similar_blocks in find_duplicates(file_paths, block_size=block_size, min_occur=min_occur):
+    duplicates = find_duplicates(
+        file_paths, block_size=block_size, min_occur=min_occur
+    )
+    for fname, lnum, block_sz, similar_blocks in duplicates:
         end_line = lnum + block_sz - 1
         output_parts = [f"{fname}: lines {lnum}-{end_line} occur in"]
         
         for other_file, other_line, similarity in similar_blocks:
             other_end = other_line + block_sz - 1
             similarity_pct = int(similarity * 100)
-            output_parts.append(f" {other_file} at lines {other_line}-{other_end} ({similarity_pct}% similarity) and")
+            output_parts.append(
+                f" {other_file} at lines {other_line}-{other_end} "
+                f"({similarity_pct}% similarity) and"
+            )
         
         output = "".join(output_parts).rstrip(" and")
         print(output)

@@ -38,7 +38,10 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
         for node in ast.walk(tree):
             if isinstance(node, ast.ExceptHandler):
                 # Bare except or except Exception
-                if node.type is None or (isinstance(node.type, ast.Name) and node.type.id == "Exception"):
+                is_bare = node.type is None
+                is_exception = (isinstance(node.type, ast.Name)
+                                and node.type.id == "Exception")
+                if is_bare or is_exception:
                     bare_or_exception_per_file[f] += 1
                 else:
                     # Count other exception types
@@ -56,7 +59,9 @@ def main(files: List[pathlib.Path], **kwargs) -> None:
         print(f"  {exc}: {count} occurrence(s)")
 
     print("\nBare excepts / 'except Exception' ratio per file:")
-    for f in sorted(set(list(bare_or_exception_per_file.keys()) + list(other_exceptions_per_file.keys()))):
+    all_files = (set(bare_or_exception_per_file.keys())
+                 | set(other_exceptions_per_file.keys()))
+    for f in sorted(all_files):
         bare = bare_or_exception_per_file.get(f, 0)
         other = other_exceptions_per_file.get(f, 0)
         total = bare + other
