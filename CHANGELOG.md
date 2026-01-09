@@ -1,3 +1,6 @@
+## Version 0.1.2
+- Move input validation outside of main functions
+
 ## Version 0.1.1
 - Fix `complexity` tool to properly preserve all terms
   - Bugs remain in combining constant terms
